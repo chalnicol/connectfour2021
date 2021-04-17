@@ -29,7 +29,7 @@ class Intro extends Phaser.Scene {
 
         for ( let i in menuArr ) {
 
-            const miniCont = this.add.container ( 960, 624 + (i * 100) ).setSize( 500, 90).setInteractive().setData ('id', i );
+            const miniCont = this.add.container ( 960, 600 + (i * 110) ).setSize( 500, 90).setInteractive().setData ('id', i );
 
             let rct = this.add.image ( 0, 0, 'bgmenu' ).setVisible (false);
 

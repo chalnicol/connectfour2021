@@ -12,8 +12,6 @@ class SceneA extends Phaser.Scene {
     create () 
     {
 
-        this.plyr = 'self';
-
         this.gridArr = [];
 
         this.add.image (960, 540, 'centerpiece');
@@ -85,6 +83,17 @@ class SceneA extends Phaser.Scene {
 
         this.createControls ();
 
+        this.initGame ();
+
+    }
+
+    initGame ()
+    {   
+        this.plyr = 'self';
+
+        
+
+        this.gameOver = false;
     }
 
     createControls () 
@@ -111,10 +120,14 @@ class SceneA extends Phaser.Scene {
         }
     }
 
-
     createPlayersIndicator () 
     {
 
+        this.players = [
+            { username : 'Chalnicol', 'wins' : 0 },
+            { username : 'Nong',  'wins' : 0 },
+            
+        ]
         const w = 507, sp = 27;
 
         const sx = (1920 - ((w*2) + sp))/2 + w/2,
@@ -126,7 +139,7 @@ class SceneA extends Phaser.Scene {
 
             let img = this.add.image ( 0, 0, 'plyrInd');
 
-            let name = this.add.text ( -150, -34, 'Chalnicol', { fontSize: 30, fontFamily:'Oswald', color: '#838383' });
+            let name = this.add.text ( -150, -34, this.players[i].username, { fontSize: 30, fontFamily:'Oswald', color: '#838383' });
 
             let wins = this.add.text ( -150, 6, 'Wins : 0', { fontSize: 26, fontFamily:'Oswald', color: '#9f9f9f' });
 
@@ -337,60 +350,54 @@ class SceneA extends Phaser.Scene {
 
         this.gameOver = true;
 
-        this.time.delayedCall ( 500, this.showPrompt, [], this );
+        this.time.delayedCall ( 500, this.showEndPrompt, [], this );
 
     }
 
-    showPrompt () {
+    showPrompt ( cont, myTxt, fs = 40, withButton = false )
+    {
 
-        this.promptCont = this.add.container (0,0);
-
-        let rct = this.add.rectangle ( 960, 540, 1920, 1080, 0xffffff, 0.3 ).setInteractive ();
-
-        rct.on('pointerdown', function () {
-            // this.scene.removePrompt();
-        });
-
-        this.promptCont.add( rct );
+        const txtPos = withButton ? -20 : 0;
 
         let miniCont = this.add.container ( 960, 1350 );
 
         let img = this.add.image ( 0, 0, 'prompt');
 
-        let txt = this.add.text (  0, -20, 'Congrats, You Win!', { fontSize: 40, fontFamily:'Oswald', color: '#9f9f9f' }).setOrigin(0.5);
+        let txt = this.add.text (  0, txtPos, myTxt, { fontSize: fs, fontFamily:'Oswald', color: '#9f9f9f' }).setOrigin(0.5);
 
-        miniCont.add ([ img, txt ]);
+        miniCont.add ([img, txt]);
 
+        if ( withButton ) {
 
-        const bw = 180, bh = 60, sp = 20;
+            const bw = 180, bh = 60, sp = 20;
 
-        const bx = -(( bw/2 ) + (sp/2)), by = 90;
+            const bx = -(( bw/2 ) + (sp/2)), by = 90;
 
-        const txtArr = ['Rematch', 'Exit'];
+            const txtArr = ['Rematch', 'Exit'];
 
-        for ( var i = 0; i < 2; i++ ) {
-            
-            let btn = new MyButton ( this, bx + i*(bw+sp), by, bw, bh, i, 'promptbtns', '', '', txtArr [i], 30 );
+            for ( var i = 0; i < 2; i++ ) {
+                
+                let btn = new MyButton ( this, bx + i*(bw+sp), by, bw, bh, i, 'promptbtns', '', '', txtArr [i], 30 );
 
-            btn.on('pointerdown', function () {
-                this.clicked();
+                btn.on('pointerdown', function () {
+                    this.clicked();
 
-                switch ( this.id ) {
-                    case 0:
-                        //this.scene.testCode();
-                        break;
-                    case 1:
-                        this.scene.removePrompt ();
-                        break;
-                    default:
-                }
-            });
+                    switch ( this.id ) {
+                        case 0:
+                            //this.scene.testCode();
+                            break;
+                        case 1:
+                            this.scene.leaveScene ();
+                            break;
+                        default:
+                    }
+                });
 
+                miniCont.add ( btn );
 
-            miniCont.add ( btn );
+            }
 
         }
-
 
         this.add.tween ({
             targets : miniCont,
@@ -400,13 +407,34 @@ class SceneA extends Phaser.Scene {
             ease : 'Elastic'
         });
 
-        this.promptCont.add (miniCont);
+        cont.add (miniCont);
+
+    }
+
+    showEndPrompt () {
+
+        this.promptCont = this.add.container (0,0);
+
+        let rct = this.add.rectangle ( 960, 540, 1920, 1080, 0x0a0a0a, 0.4 ).setInteractive ();
+
+        rct.on('pointerdown', function () {
+            // this.scene.removePrompt();
+        });
+
+        this.promptCont.add( rct );
+
+        this.showPrompt (this.promptCont, 'Congrats, You Win!', 40, true);
+
 
     }
 
     removePrompt () 
     {
         this.promptCont.destroy();
+    }
+
+    leaveScene () {
+        this.scene.start ('Intro');
     }
     
 }
