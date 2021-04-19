@@ -71,7 +71,7 @@ class Intro extends Phaser.Scene {
 
         socket.on('pairingError', (data) => {
             
-            if ( this.isPrompted) this.promptCont.destroy ();
+            if ( this.pairWaitCont) this.pairWaitCont.destroy ();
 
             const prompt = this.showPromptScreen ( data.errorMsg, 0, 30 );
 
@@ -84,7 +84,7 @@ class Intro extends Phaser.Scene {
             
             const gameStr = data.gameType == 0 ? 'Classic' : 'Blitz';
 
-            this.showInviteScreen ( `You have been invited by '${data.username}' to play '${gameStr}'` );
+            this.showInviteScreen ( `You have been invited by '${data.username}' to play '${gameStr}' game.` );
 
         });
 
@@ -93,7 +93,7 @@ class Intro extends Phaser.Scene {
     createMenu ()
     {
         //add menu
-        const menuArr = [ 'Play vs Computer', 'Play vs Online', 'Play vs Friend'];
+        const menuArr = [ 'Play Vs Computer', 'Play Vs Online', 'Challenge A Friend'];
 
         for ( var i in menuArr ) {
 
@@ -167,7 +167,7 @@ class Intro extends Phaser.Scene {
         //miniCont
         let miniCont = this.add.container ( 960, 540  ); //1230
 
-        let rcte = this.add.rectangle ( 0, 0, 700, 300, 0xf3f3f3, 0.9 ).setStrokeStyle ( 2, 0x9e9e9e );
+        let rcte = this.add.rectangle ( 0, 0, 800, 280, 0xf3f3f3, 0.9 ).setStrokeStyle ( 2, 0x9e9e9e );
 
         let txte = this.add.text ( 0, -50, txt, { color:'#000', fontFamily:'Oswald', fontSize: 30 }).setOrigin(0.5);
 
@@ -361,9 +361,7 @@ class Intro extends Phaser.Scene {
 
         this.pairingScreenCont.destroy ();
 
-        this.isPrompted = true;
-
-        this.promptCont =  this.showPromptScreen ('Waiting For Response..' );
+        this.pairWaitCont =  this.showPromptScreen ('Waiting For Response..' );
 
     }
 

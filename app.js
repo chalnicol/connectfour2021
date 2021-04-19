@@ -280,7 +280,6 @@ io.on('connection', function(socket){
 				
 				player.pairedRoom = '';
 
-
 				let hostId = room.players [0];
 
 				playerList [ hostId ].reset ();
