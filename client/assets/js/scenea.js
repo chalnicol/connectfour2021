@@ -10,8 +10,10 @@ class SceneA extends Phaser.Scene {
 
     }
 
-    create () 
+    create ( data ) 
     {
+
+        this.gameData = data;
 
         this.gridArr = [];
      
@@ -19,6 +21,10 @@ class SceneA extends Phaser.Scene {
         
         this.gameOver = false;
 
+
+        //add bg
+        this.add.image ( 960, 540, 'bg'); 
+        
         //add field bg..
 
         this.add.image (960, 540, 'centerpiece');
@@ -35,7 +41,7 @@ class SceneA extends Phaser.Scene {
 
             this.add.image ( cx + iy * csize, cy + ix*csize, 'cellbg' );
 
-            this.add.text ( cx + iy * csize, cy + ix*csize, i, { fontSize:20, fontFamily:'Arial', color:'#333'}).setOrigin(0.5);
+            //this.add.text ( cx + iy * csize, cy + ix*csize, i, { fontSize:20, fontFamily:'Arial', color:'#333'}).setOrigin(0.5);
         }
 
         for ( let i = 0; i < 7; i++ ) {
@@ -60,6 +66,9 @@ class SceneA extends Phaser.Scene {
             });
             
         }
+
+      
+
 
         //..
         this.circCont = this.add.container (0, 0);
@@ -91,6 +100,8 @@ class SceneA extends Phaser.Scene {
 
         }
 
+        this.initSocketListeners();
+
         this.initPlayers();
 
         this.createPlayersIndicator ();
@@ -102,21 +113,69 @@ class SceneA extends Phaser.Scene {
 
     }
 
+    initSocketListeners () {
+
+        socket.on('opponentLeft', (data) => {
+            console.log ( 'Opponent Left', data );
+        });
+
+    }
 
     initPlayers () {
 
-        const names = ['Nong', 'Chalo', 'Nasty', 'Caloy'];
-
         this.players = {};
 
-        this.players ['self'] = { 
-            username : 'Chalnicol', wins : 0, isAI : false, chip : 0
-        }
-        this.players ['oppo'] = { 
-            username : names [ Phaser.Math.Between (0, names.length - 1) ], wins : 0, isAI : true, chip : 1
-        }
+        const names = ['Nong', 'Chalo', 'Nasty', 'Caloy'];
+
+        let oppoUsername = '', 
+            
+            oppoAI = false, 
+            
+            oppoChip = 0;
         
-        this.turn =  Phaser.Math.Between(0, 1) == 0 ? 'self' : 'oppo';
+        let turn = 'self';
+
+
+        if (this.gameData.game == 0 ) {
+
+            //is single player..
+            oppoUsername = names [ Phaser.Math.Between (0, names.length - 1) ];
+
+            oppoAI = true;
+
+            oppoChip = this.gameData.players ['self'].chip == 0 ? 1 : 0;
+
+            turn = Phaser.Math.Between(0, 1) == 0 ? 'self' : 'oppo';
+
+        }  else {
+
+            oppoUsername = this.gameData.players ['oppo'].username;
+
+            oppoChip = this.gameData.players ['oppo'].chip;
+
+            turn = this.gameData.turn;
+            
+        }   
+
+        //..
+
+        this.players ['self'] = { 
+            'username' : this.gameData.players['self'].username, 
+            'wins' : 0, 
+            'isAI' : false, 
+            'chip' : 0
+        }
+
+        this.players ['oppo'] = { 
+            'username' : oppoUsername, 
+            'wins' : 0, 
+            'isAI' : oppoAI , 
+            'chip' : oppoChip
+        }
+
+        this.turn = turn;
+        
+        
     
     }
 
@@ -141,7 +200,7 @@ class SceneA extends Phaser.Scene {
     createControls () 
     {
 
-        const btnArr = [ 'Exit', 'Sound', 'Music' ];
+        const btnArr = [ 'Exit', 'Sound', 'Music', 'Emoji' ];
 
         for ( let i in btnArr ) {
 
@@ -151,10 +210,8 @@ class SceneA extends Phaser.Scene {
                 
                 this.clicked ();
 
-                switch ( this.id ) {
-
-                    
-                }
+                this.scene.showExitPrompt ();
+                
 
             });
             
@@ -583,6 +640,11 @@ class SceneA extends Phaser.Scene {
     }
 
     leaveGame () {
+
+        socket.emit ('leaveGame');
+
+        socket.removeAllListeners();
+
         this.scene.start ('Intro');
     }
     

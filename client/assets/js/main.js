@@ -1,4 +1,7 @@
 
+
+var socket;
+
 window.onload = function () {
 
     var config = {
@@ -15,5 +18,14 @@ window.onload = function () {
     };
 
     new Phaser.Game(config);
+
+     //connect to socket
+
+    let myUsername = 'Guest' + Math.floor (Math.random() * 9999);
+
+    socket = io();
+
+    socket.emit ('initUser', { 'username' : myUsername });
+
 
 } 

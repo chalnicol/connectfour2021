@@ -42,13 +42,11 @@ class Preloader extends Phaser.Scene {
         // this.load.audio ('bgsound2', ['client/assets/sfx/bgsound.ogg', 'client/assets/sfx/bgsound.mp3'] );
 
         // this.load.audio ('bgsound', ['client/assets/sfx/bgsound2.ogg', 'client/assets/sfx/bgsound2.mp3'] );
-        
+        this.load.image('bg', 'client/assets/images/bg.jpg');
 
         this.load.image('title', 'client/assets/images/title.png');
 
         this.load.image('profile', 'client/assets/images/profile.png');
-
-        this.load.image('bgmenu', 'client/assets/images/bgmenu.png');
 
         this.load.image('centerpiece', 'client/assets/images/centerpiece.png');
 
@@ -59,7 +57,12 @@ class Preloader extends Phaser.Scene {
         this.load.image('plyrInd', 'client/assets/images/profile_main.png');
 
         this.load.image('prompt', 'client/assets/images/prompt.png');
-        
+
+        this.load.image('pair_bg', 'client/assets/images/pair_bg.png');
+
+        this.load.spritesheet('pair_btns', 'client/assets/images/pair_btns.png', { frameWidth: 160, frameHeight: 110 });
+
+        this.load.spritesheet('bgmenu', 'client/assets/images/bgmenu2.png', { frameWidth: 556, frameHeight: 108 });
 
         this.load.spritesheet('chips', 'client/assets/images/chips.png', { frameWidth: 140, frameHeight: 140 });
 
