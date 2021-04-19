@@ -67,9 +67,6 @@ class SceneA extends Phaser.Scene {
             
         }
 
-      
-
-
         //..
         this.circCont = this.add.container (0, 0);
 
@@ -107,18 +104,16 @@ class SceneA extends Phaser.Scene {
         this.createPlayersIndicator ();
 
         this.createControls ();
-    
-        //start game..
-        if ( this.players[ this.turn ].isAI ) this.makeAI();
+
+        this.startGame ();
 
     }
 
-    initSocketListeners () {
-
+    initSocketListeners () 
+    {
         socket.on('opponentLeft', (data) => {
             console.log ( 'Opponent Left', data );
         });
-
     }
 
     initPlayers () {
@@ -178,25 +173,7 @@ class SceneA extends Phaser.Scene {
         
     
     }
-
-    makeAI () {
-
-        let tmp = [];
-
     
-        for ( var i in this.gridArr ){
-           if ( this.gridArr[i].resident == 0 ) tmp.push (i); 
-        }
-
-        let rnd = Phaser.Math.Between (0, tmp.length - 1 );
-
-        this.time.delayedCall ( 500, function () {
-            this.makeTurn ( tmp[rnd] % 7, this.turn );
-        }, [], this);
-    
-        
-    }
-
     createControls () 
     {
 
@@ -244,17 +221,86 @@ class SceneA extends Phaser.Scene {
 
             let img = this.add.image ( 0, 0, 'plyrInd');
 
+            let crc = this.add.circle ( 200, 0, 15, 0x6e6e6e, 1 ).setStrokeStyle ( 1, 0x9e9e9e );
+
             let name = this.add.text ( -150, -34, this.players[i].username, { fontSize: 30, fontFamily:'Oswald', color: '#838383' });
 
             let wins = this.add.text ( -150, 6, 'Wins : 0', { fontSize: 26, fontFamily:'Oswald', color: '#9f9f9f' });
 
-            pInd.add ( [img, name, wins] );
+            pInd.add ( [ img, crc, name, wins] );
 
             this.playerIndicatorsCont.add ( pInd );
 
             counter++;
         }
 
+    }
+
+    setTurnIndicator  ( turn ) 
+    {
+
+        let idle = turn == 'self' ? 'oppo' : 'self';
+
+        this.playerIndicatorsCont.getByName ( turn ).getAt (1).setFillStyle ( 0xffff00, 1);
+
+        this.playerIndicatorsCont.getByName ( idle ).getAt (1).setFillStyle ( 0xffffff, 1);
+
+    }
+
+    startGame ()
+    {
+
+        let cont = this.add.container ( 960, 540 );
+
+        let rct = this.add.rectangle ( 0, 0, 550, 100, 0xfefefe, 0.8 );
+
+        let txt = this.add.text ( 0, 0, 'Game starts in 3..', { color:'#333', fontSize: 36, fontFamily :'Oswald'}).setOrigin(0.5);
+
+        cont.add ( [ rct, txt ]);
+
+        var counter = 0;
+
+        this.startTime = this.time.addEvent ({
+            delay : 1000,
+            callback : () => {
+
+                counter ++;
+                cont.last.text = "Game starts in " + (3 - counter) + "..";
+                
+                console.log ( counter );
+
+                if ( counter == 3 ) {
+
+                    this.setTurnIndicator ( this.turn );
+
+                    if ( this.players[ this.turn ].isAI ) this.makeAI();
+                    
+                    cont.destroy();
+                }
+            },
+            callbackScope : this,
+            repeat : 2
+        })
+
+        
+    }
+
+    makeAI () {
+
+        let tmp = [];
+
+    
+        for ( var i in this.gridArr ){
+           if ( this.gridArr[i].resident == 0 ) tmp.push (i); 
+        }
+
+        let rnd = Phaser.Math.Between (0, tmp.length - 1 );
+
+        this.time.delayedCall ( 500, function () {
+            this.makeTurn ( tmp[rnd] % 7, this.turn );
+        }, [], this);
+    
+        
     }
 
     getDepth ( col ) 
@@ -325,6 +371,8 @@ class SceneA extends Phaser.Scene {
 
         this.turn = ( this.turn == 'self' ) ? 'oppo' : 'self';
         
+        this.setTurnIndicator ( this.turn );
+
         if ( this.players[ this.turn ].isAI ) this.makeAI();
 
     }
@@ -518,7 +566,6 @@ class SceneA extends Phaser.Scene {
         });
 
         this.promptCont.add ( rct );
-
 
         let miniCont = this.add.container ( 960, 1350 );
 

@@ -7,11 +7,12 @@ class Intro extends Phaser.Scene {
         super('Intro');
     }
 
-
     create () 
     {
 
-        this.isWaiting = false;
+        this.pairingScreenShown = false;
+
+        this.isPairing = false;
 
         this.isPrompted = false;
 
@@ -22,7 +23,7 @@ class Intro extends Phaser.Scene {
         this.add.image ( 960, 540, 'title'); 
 
         //add player indicator.. 
-        this.profileCont = this.add.container ( 210, 85 );
+        let profile = this.add.container ( 210, 85 ).setSize (360, 100).setInteractive();
 
         let img = this.add.image ( 0, 0, 'profile');
 
@@ -30,7 +31,14 @@ class Intro extends Phaser.Scene {
 
         let txte = this.add.text (-80, 10, 'Pairing ID : -', { color:'#666', fontFamily:'Oswald', fontSize : 20 });
 
-        this.profileCont.add ([img, username, txte]);
+        profile.add ([img, username, txte]);
+
+        profile.on('pointerdown', () => {
+            this.showChangeUsernameScreen ();
+        });
+
+
+        this.profileCont = profile;
 
         //
         this.playerOnlineTxt = this.add.text ( 40 , 160, 'Players Online: -', { color:'#ff9900', fontFamily:'Oswald', fontSize : 26 });
@@ -41,15 +49,14 @@ class Intro extends Phaser.Scene {
         //..
         this.createMenu ();
 
-
-        this.initSocketListeners ();
-
-        //get initial data..
-        socket.emit('getInitData');
+        this.initSocketIO ();
 
     }
 
-    initSocketListeners () {
+    initSocketIO () {
+
+        //get initial data..
+        socket.emit('getInitData');
 
         socket.on('playersOnline', (data) => {
             this.playerOnlineTxt.text = 'Players Online : ' + data.playersCount;
@@ -71,17 +78,18 @@ class Intro extends Phaser.Scene {
 
         socket.on('pairingError', (data) => {
             
-            if ( this.pairWaitCont) this.pairWaitCont.destroy ();
+            if ( this.isPrompted) this.removePrompt ();
 
-            const prompt = this.showPromptScreen ( data.errorMsg, 0, 30 );
+            this.showPrompt ( data.errorMsg, 0, 30, 600, 200 );
 
-            this.time.delayedCall ( 2000, () => prompt.destroy(), [], this );
+            this.time.delayedCall ( 1500, this.removePrompt, [], this );
 
         });
 
         socket.on('pairInvite', (data) => {
             
-            
+            if ( this.pairingScreenShown ) this.removePairScreen();
+
             const gameStr = data.gameType == 0 ? 'Classic' : 'Blitz';
 
             this.showInviteScreen ( `You have been invited by '${data.username}' to play '${gameStr}' game.` );
@@ -125,11 +133,11 @@ class Intro extends Phaser.Scene {
                 switch ( this.getData('id') ) {
                     case 'but0':
                         socket.emit ('enterGame', {'game' : 0, 'gameType' : 0 });
-                        this.scene.showWaitScreen();
+                        this.scene.showPairingWaitScreen();
                         break;
                     case 'but1':
                         socket.emit ('enterGame', {'game' : 1, 'gameType' : 0 });
-                        this.scene.showWaitScreen();
+                        this.scene.showPairingWaitScreen();
                         break;
                     case 'but2':
                         this.scene.showPairingScreen();
@@ -152,54 +160,16 @@ class Intro extends Phaser.Scene {
 
     }
 
-    showInviteScreen ( txt ) {
-
-        this.isPrompted = true;
-
-        let mainCont = this.add.container (0, 0);
-
-        //bg
-        let rct = this.add.rectangle ( 0, 0, 1920, 1080, 0x0a0a0a, 0.5 ).setOrigin(0).setInteractive();
-
-        mainCont.add ( rct );
-
-
-        //miniCont
-        let miniCont = this.add.container ( 960, 540  ); //1230
-
-        let rcte = this.add.rectangle ( 0, 0, 800, 280, 0xf3f3f3, 0.9 ).setStrokeStyle ( 2, 0x9e9e9e );
-
-        let txte = this.add.text ( 0, -50, txt, { color:'#000', fontFamily:'Oswald', fontSize: 30 }).setOrigin(0.5);
-
-        miniCont.add ([rcte, txte]);
-
-        const btnArrs = ['Later', 'Accept'];
-
-        const sx = -100;
-
-        for ( let i = 0; i < 2; i++ ) {
-
-            let btn = new MyButton ( this, sx + (i * 200), 60, 190, 80, i, 'promptbtns', '', 0, btnArrs [i], 40 );
-
-            btn.on('pointerdown', function() {
-
-                this.clicked();
-
-                socket.emit ( 'pairingResponse', { 'response' : this.id });
-
-                mainCont.destroy ();
-
-            });
-
-            miniCont.add (btn);
-        }
-
-        mainCont.add ( miniCont );
-
+    showChangeUsernameScreen () 
+    {
+        //todo...
     }
 
     showPairingScreen ()
     {
+
+        this.pairingScreenShown = true;
+
         this.pairingScreenCont = this.add.container (0,0);
 
         let rct = this.add.rectangle ( 0, 0, 1920, 1080, 0x0a0a0a, 0.5 ).setOrigin(0).setInteractive();
@@ -220,8 +190,6 @@ class Intro extends Phaser.Scene {
         //221 -305
 
         miniCont.add ([rcte, txte, xb ]);
-
-
 
         //
         const ls = '1234567890';
@@ -297,24 +265,60 @@ class Intro extends Phaser.Scene {
 
     }
 
-    showPromptScreen ( txt, txtPos = 0, fs = 40 ) {
+    removePairScreen () {
 
-        let mainCont = this.add.container (0, 0);
+        this.pairingScreenShown = false;
+
+        this.pairingScreenCont.destroy();
+    }
+
+    showPrompt ( txt, txtPos = 0, txtSize = 40, boxW = 550, boxH = 300, buttons = [] ) {
+
+        this.isPrompted = true;
+
+        this.promptCont = this.add.container (0, 0);
 
         //bg
         let rct = this.add.rectangle ( 0, 0, 1920, 1080, 0x0a0a0a, 0.5 ).setOrigin(0).setInteractive();
 
-        mainCont.add ( rct );
-
+        this.promptCont.add ( rct );
 
         //miniCont
-        let miniCont = this.add.container ( 960, 1230  );
+        let miniCont = this.add.container ( 960, 1080 + (boxH/2)  );
 
-        let rcte = this.add.rectangle ( 0, 0, 550, 300, 0xf3f3f3, 0.9 ).setStrokeStyle ( 2, 0x9e9e9e );
+        let rcte = this.add.rectangle ( 0, 0, boxW, boxH, 0xf3f3f3, 0.9 ).setStrokeStyle ( 2, 0x9e9e9e );
 
-        let txte = this.add.text ( 0, txtPos, txt, { color:'#000', fontFamily:'Oswald', fontSize: fs }).setOrigin(0.5);
+        let txte = this.add.text ( 0, txtPos, txt, { color:'#000', fontFamily:'Oswald', fontSize: txtSize }).setOrigin(0.5);
 
         miniCont.add ([rcte, txte]);
+        
+        if ( buttons.length > 0 ) {
+
+            const bw = 190, bh = 80, bsp = 10;
+
+            const sx = (buttons.length * (bw + bsp) - bsp)/2 - (bw/2), 
+            
+                  sy = 60;
+
+            for ( let i = 0; i < buttons.length; i++ ) {
+
+                let btn = new MyButton ( this, -sx + (i * ( bw + bsp)), sy, bw, bh, i, 'promptbtns', '', 0, buttons[i].btnTxt, 40 );
+
+                btn.on('pointerdown', function() {
+
+                    this.clicked();
+
+                    buttons [i].func();
+                });
+
+                miniCont.add (btn);
+
+            }
+
+        }
+
+
+       
 
         this.add.tween ({
             targets : miniCont,
@@ -322,34 +326,56 @@ class Intro extends Phaser.Scene {
             duration : 300,
             easeParams : [ 1, 0.6 ],
             ease : 'Elastic',
-            //delay : 100
         });
 
-        mainCont.add ( miniCont );
+        this.promptCont.add ( miniCont );
 
-        return mainCont;
+
+       
+    }
+
+    removePrompt () {
+        
+        this.isPrompted = false;
+
+        this.promptCont.destroy ();
+    }
+
+    showInviteScreen ( txt ) {
+
+        this.isPrompted = true;
+
+        const btnArrs = [
+            { 
+                btnTxt : 'Later', 
+                func : () => {
+                    this.removePrompt ();
+                    socket.emit ('pairingResponse', { 'response' : 0 });
+                }
+            },
+            {
+                btnTxt : 'Accept',
+                func : () => {
+                    this.removePrompt ();
+                    socket.emit ('pairingResponse', { 'response' : 1 });
+                }
+            }
+        ];
+
+        this.showPrompt ( txt, -50, 30, 800, 300, btnArrs );
 
     }
 
-    showWaitScreen () 
+    showPairingWaitScreen () 
     {
-        this.isWaiting = true;
 
-        let cont = this.showPromptScreen ('Please Wait..', -50 );
+        this.isPairing = true;
 
-        let btn = new MyButton ( this, 0, 60, 190, 80, 'cancel', 'promptbtns', '', 0, 'Cancel', 40 );
+        const btnArrs = [
+            { btnTxt : 'Cancel', func : () => this.cancelPairing() }
+        ];
 
-        btn.on('pointerdown', function() {
-
-            this.clicked();
-
-            this.scene.cancelPairing();
-
-        });
-
-        cont.last.add (btn);
-
-        this.waitScreenCont = cont;
+        this.showPrompt ('Please Wait..', -50, 40, 550, 300, btnArrs );
 
         this.autoCancelTimer = this.time.delayedCall ( 10000, this.cancelPairing, [], this );
 
@@ -359,27 +385,19 @@ class Intro extends Phaser.Scene {
 
         socket.emit ('pair', {'pairingId' : str, 'gameType' : 0 });
 
-        this.pairingScreenCont.destroy ();
-
-        this.pairWaitCont =  this.showPromptScreen ('Waiting For Response..' );
-
-    }
-
-    removePairScreen () {
-        
         this.pairingScreenCont.destroy();
+
+        this.showPrompt ('Waiting for Response..', 0, 40, 600, 200 );
 
     }
 
     cancelPairing () {
 
-        console.log ('pairing cancelled');
+        this.removePrompt();
 
-        this.isWaiting = false;
+        this.isPairing = false;
 
         this.autoCancelTimer.remove();
-
-        this.waitScreenCont.destroy();
 
         socket.emit ('cancelPairing');
 
@@ -387,7 +405,7 @@ class Intro extends Phaser.Scene {
 
     startGameScene ( data ) {
 
-        if ( this.isWaiting )  this.autoCancelTimer.remove();
+        if ( this.isPairing )  this.autoCancelTimer.remove();
 
         socket.removeAllListeners();
 
