@@ -71,7 +71,7 @@ class Intro extends Phaser.Scene {
 
         socket.on('pairingError', (data) => {
             
-            this.promptCont.destroy ();
+            if ( this.isPrompted) this.promptCont.destroy ();
 
             const prompt = this.showPromptScreen ( data.errorMsg, 0, 30 );
 
@@ -360,6 +360,8 @@ class Intro extends Phaser.Scene {
         socket.emit ('pair', {'pairingId' : str, 'gameType' : 0 });
 
         this.pairingScreenCont.destroy ();
+
+        this.isPrompted = true;
 
         this.promptCont =  this.showPromptScreen ('Waiting For Response..' );
 

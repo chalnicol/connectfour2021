@@ -36,6 +36,8 @@ class Player {
 
 		this.chip = 0;
 
+		this.pairedRoom = '';
+
 	}
 
 	reset () 
@@ -45,6 +47,8 @@ class Player {
 		this.roomIndex = 0;
 
 		this.chip = 0;
+
+		this.pairedRoom = '';
 
 	}
 
@@ -224,19 +228,31 @@ io.on('connection', function(socket){
 
 		let plyr = playerList [socket.id];
 
-		let friend = getPaired ( data.pairingId, socket.id );
+		let friendsId = getPaired ( data.pairingId, socket.id );
 
-		if ( friend != '' ) {
+		if ( friendsId != '' ) {
 
-			if ( playerList[ friend ].roomId == '' ) {
+			let friend = playerList [ friendsId ];
+			
+			if ( friend.roomId == '' ) {
 
-				const inviteId = plyr.username + '_' + Date.now()
+				var roomId = plyr.username + '_' + Date.now();
 
-				let invite = new Invite ( inviteId, data.gameType, plyr.id, friend );
+				var newRoom = new GameRoom ( roomId, data.gameType );
 
-				inviteList [ inviteId ] = invite;
+				newRoom.players.push ( socket.id );
 
-				socketList [ friend ].emit ('pairInvite', { 'gameType' : data.gameType, 'username' : plyr.username });
+				newRoom.isClosed = true;
+
+				roomList [ roomId ] = newRoom;
+
+				plyr.roomid = roomId;
+
+				friend.pairedRoom = roomId;
+				
+				console.log ('-> Invite sent to', friend.username );
+
+				socketList [ friendsId ].emit ('pairInvite', { 'gameType' : data.gameType, 'username' : plyr.username });
 
 			}else {
 
@@ -256,53 +272,45 @@ io.on('connection', function(socket){
 
 		var player = playerList [socket.id];
 
-		if ( data.response == 0 ) {
+		if ( roomList.hasOwnProperty ( player.pairedRoom ) ) {
 
+			var room = roomList [ player.pairedRoom ];
 
-		}else {
-
-
-		}
-
-
-		if ( roomList.hasOwnProperty ( player.tmpRoom ) ) {
-
-			if ( !data ) {
+			if ( data.response == 0 ) {
 				
-				var room = roomList [ player.tmpRoom ];
+				player.pairedRoom = '';
 
-				var invitee = room.playerIDs [0];
 
-				leaveRoom ( invitee );
+				let hostId = room.players [0];
 
-				player.tmpRoom = '';
+				playerList [ hostId ].reset ();
 
-				socketList [invitee].emit ('pairingError', { error : 0 } );
+				delete roomList [ player.pairedRoom ];
+
+				console.log ('-> ' + player.username +' has declined. Host has been reset and room has been deleted..')
+
+				socketList [ hostId ].emit ('pairingError', { 'errorMsg' : 'Friend is not available right now.'  } );
 
 			} else {
 
-				player.roomid = player.tmpRoom;
+				player.roomId = player.pairedRoom;
 
-				player.index = 1;
+				player.roomIndex = 1;
 
-				player.type = 1;
+				player.chip = 1;
 
-				var gameRoom = roomList [ player.roomid ];
+				room.players.push ( socket.id );
 
-				gameRoom.playerIDs.push ( socket.id );
-
-				gameRoom.playerCount += 1;
-
-				initGame ( gameRoom.id );
+				initGame ( room.id );
 
 			}
 			
 
 		}else {
 
-			player.tmpRoom = '';
+			player.pairedRoom = '';
 			
-			if ( data ) socket.emit ('pairingError', { 'error' : 2 });
+			socket.emit ('pairingError',  { 'errorMsg' : 'Something Happened. Please try again.'  });
 
 		}
 
