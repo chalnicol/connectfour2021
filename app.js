@@ -383,13 +383,13 @@ io.on('connection', function(socket){
 
 		var player = playerList [ socket.id ];
 
-		var room = roomList [ player.roomid ];
+		var room = roomList [ player.roomId ];
 
 		for ( var i in room.players ) {
 
-			var plyr =  ( room.playerIDs [i] == player.id ) ? 'self' : 'oppo';
+			var plyr =  ( room.players [i] == player.id ) ? 'self' : 'oppo';
 			
-			socketList [ room.playerIDs[i] ].emit ( 'showEmoji',  { 'plyr' : plyr, 'emoji' : data.emoji });
+			socketList [ room.players [i] ].emit ( 'showEmoji',  { 'plyr' : plyr, 'emoji' : data.emoji });
 
 		}
 

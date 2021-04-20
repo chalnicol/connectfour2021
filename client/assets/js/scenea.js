@@ -130,6 +130,14 @@ class SceneA extends Phaser.Scene {
     initSocketIO () 
     {
 
+        socket.on('showEmoji', ( data ) => { 
+            
+            if ( this.sentEmojisShown ) this.removeSentEmojis();
+
+            this.showSentEmojis ( data.plyr, data.emoji );
+
+        });
+
         socket.on('restartGame', () => {
             this.resetGame ();
         });
@@ -213,11 +221,13 @@ class SceneA extends Phaser.Scene {
     createControls () 
     {
 
+        this.controlBtnsCont = this.add.container (0,0);
+        
         const btnArr = [ 'exit', 'sound', 'music', 'emoji' ];
 
         for ( let i in btnArr ) {
 
-            let btnCont = new MyButton ( this, -50 , (i * 110) + 218, 100, 100, btnArr[i], 'contbtns', 'imgBtns', i);
+            let btnCont = new MyButton ( this, -50 , (i * 110) + 218, 100, 100, btnArr[i], 'contbtns', 'imgBtns', i).setName (btnArr[i]);
 
             btnCont.on('pointerdown', function () {
                 
@@ -254,6 +264,8 @@ class SceneA extends Phaser.Scene {
                 delay : i * 200,
                 ease : 'Linear'
             });
+
+            this.controlBtnsCont.add ( btnCont );
 
         }
     }
@@ -335,11 +347,27 @@ class SceneA extends Phaser.Scene {
 
                     this.showSentEmojis ('self', i );
 
+                    this.time.delayedCall ( 2000, () => {
+
+                        if ( this.sentEmojisShown ) this.removeSentEmojis();
+
+                        this.showSentEmojis ('oppo', Math.floor ( Math.random() * 12 ));
+
+                    }, [], this);
+
+
                 }else {
 
                     socket.emit ('sendEmoji', { 'emoji' : i });
                 }
 
+                //...disable emoji btns for 2 secs..
+                this.controlBtnsCont.getByName('emoji').removeInteractive();
+
+                this.time.delayedCall ( 4000, () => {
+                    this.controlBtnsCont.getByName('emoji').setInteractive();
+                }, [], this );
+            
             }, this );
 
             this.emojiContainer.add ( cont );
@@ -357,11 +385,11 @@ class SceneA extends Phaser.Scene {
 
     showSentEmojis ( plyr, emoji ) {
         
-        if ( this.emojisThread.length >= 12 ) this.emojisThread.shift();
+        if ( this.emojisThread.length >= 6 ) this.emojisThread.shift();
 
         this.emojisThread.push ( { 'plyr' : plyr, 'emoji' : emoji });
 
-        this.emojiThreadCont = this.add.container ( 1600, 0 );
+        this.emojiThreadCont = this.add.container ( 1500, 0 );
 
         for ( var i in this.emojisThread ) {
 
@@ -369,20 +397,20 @@ class SceneA extends Phaser.Scene {
 
             let nme = this.players [ this.emojisThread [i].plyr ].username;
 
-            let clr = this.emojisThread [i].plyr == 'self' ? 'blue' : 'red';
+            let clr = this.emojisThread [i].plyr == 'self' ? '#33cc33' : '#ff6600';
 
-            let rct = this.add.rectangle ( 0, yp, 300, 80, 0xf3f3f3, 1 ).setOrigin (0)
+            let rct = this.add.rectangle ( 0, yp, 400, 80, 0xf3f3f3, 1 ).setOrigin (0)
             
-            let txt = this.add.text ( 10, yp + 40, nme +':', { color: clr, fontFamily:'Oswald', fontSize : 30 }).setOrigin ( 0, 0.5 );
+            let txt = this.add.text ( 10, yp + 40, nme +':', { color: clr, fontFamily:'Oswald', fontSize : 26 }).setOrigin ( 0, 0.5 );
 
-            let img = this.add.image ( 200, yp + 40, 'emojis', this.emojisThread [i].emoji ).setScale ( 0.8 );
+            let img = this.add.image ( 300, yp + 40, 'emojis', this.emojisThread [i].emoji ).setScale ( 0.8 );
 
             this.emojiThreadCont.add ([rct, txt, img]);
         }
 
         this.sentEmojisShown = true;
 
-        this.emojiTimer = this.time.delayedCall ( 2000, () => {
+        this.emojiTimer = this.time.delayedCall ( 3000, () => {
 
             this.removeSentEmojis();
 
