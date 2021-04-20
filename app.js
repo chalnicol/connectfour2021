@@ -36,7 +36,7 @@ class Player {
 
 		this.chip = 0;
 
-		this.pairedRoom = '';
+		//this.invites = [];
 
 	}
 
@@ -47,8 +47,6 @@ class Player {
 		this.roomIndex = 0;
 
 		this.chip = 0;
-
-		this.pairedRoom = '';
 
 	}
 
@@ -107,6 +105,61 @@ class GameRoom {
 		this.initGame ();
 
 	}
+
+
+
+}
+
+class Invite {
+
+	constructor ( id, hostId, friendId, gameType=0 ) {
+
+		this.id = id;
+
+		this.roomId = roomId;
+
+		this.hostId = hostId;
+
+		this.friendId = friendId;
+
+		this.gameType = gameType;
+
+		this.startPairTimer ();
+
+	}
+
+	startPairTimer () {
+
+		this.pairTimer = setTimeout(() => {
+
+			if ( playerList.hasOwnProperty ( this.hostId ) ) {
+
+				socketList [ this.hostId ].emit ('pairingError', {'errorMsg': 'Friend is taking too long to respond.'})
+			}
+
+			if ( playerList.hasOwnProperty ( this.friendId ) ) {
+
+				socketList [ this.friendId ].emit ('pairingError', {'errorMsg': 'Invite Cancelled.'})
+
+			}
+
+			this.remove ();
+			
+		}, 10000);
+
+	}
+
+	stopPairTimer () {
+		
+		clearTimeout ( this.pairTimer );
+
+	}
+
+	remove () {
+
+		delete inviteList [ this.id ];
+	}
+
 }
 
 
@@ -228,33 +281,24 @@ io.on('connection', function(socket){
 
 	socket.on("pair", (data) => {
 
-		let plyr = playerList [socket.id];
+		let host = playerList [socket.id];
 
-		let friendsId = getPaired ( data.pairingId, socket.id );
+		let friendId = getPaired ( data.pairingId, socket.id );
 
-		if ( friendsId != '' ) {
+		if ( friendId != '' ) {
 
-			let friend = playerList [ friendsId ];
+			let friend = playerList [ friendId ];
 			
 			if ( friend.roomId == '' ) {
 
-				var roomId = plyr.username + '_' + Date.now();
+				let inviteId = 'party_' + Date_now() + '_' + Math.floor ( Math.random() * 99999 );
 
-				var newRoom = new GameRoom ( roomId, data.gameType );
+				let newInvite = new Invite ( inviteId, host.id, invitee.id )
 
-				newRoom.players.push ( socket.id );
+				inviteList [ inviteId ] = newInvite;
 
-				newRoom.isClosed = true;
+				socketList [ friendsId ].emit ('pairInvite', { 'invite' : inviteId, 'gameType' : data.gameType, 'username' : plyr.username });
 
-				roomList [ roomId ] = newRoom;
-
-				plyr.roomId = roomId;
-
-				friend.pairedRoom = roomId;
-				
-				console.log ('-> Invite sent to', friend.username );
-
-				socketList [ friendsId ].emit ('pairInvite', { 'gameType' : data.gameType, 'username' : plyr.username });
 
 			}else {
 
@@ -274,9 +318,66 @@ io.on('connection', function(socket){
 
 		var player = playerList [socket.id];
 
+		if ( inviteList.hasOwnProperty ( data.inviteId ) ) {
+
+			let invite = inviteList [ data.inviteId ];
+
+			if ( data.response == 0 ) {
+
+				socketList [ invite.hostId ].emit ('pairingError', { 'errorMsg' : 'Friend is not available right now.'  } );
+
+				delete inviteList [ data.inviteId ];
+
+			}else {
+
+				
+				let roomId = host.username + '_' + Date.now();
+
+				var newRoom = new GameRoom ( roomId, invite.gameType );
+
+				newRoom.players = [ invite.hostId, invite.friendId ];
+
+				newRoom.isClosed = true;
+
+				roomList [ roomId ] = newRoom;
+
+				//host..
+				let host = playerList [ invite.hostId ];
+
+				host.roomId = roomId;
+				
+
+				//friend..
+				let friend = playerList [ invite.friendId ];
+
+				friend.roomId = roomId;
+
+				friend.chip = 1;
+
+				friend.roomIndex = 1;
+
+				//delete invite..
+				delete inviteList [ data.inviteId ];
+
+				//initiliaze game..
+				initGame ( roomId );
+
+			}
+			
+			
+		}else {
+
+			
+			player.removeInvite ( data.inviteId );
+
+			socket.emit ('pairingError',  { 'errorMsg' : 'Something Happened. Please try again.'  });
+
+		}
 		if ( roomList.hasOwnProperty ( player.pairedRoom ) ) {
 
 			var room = roomList [ player.pairedRoom ];
+
+			room.stopPairTimer ();
 
 			if ( data.response == 0 ) {
 				
@@ -309,9 +410,7 @@ io.on('connection', function(socket){
 
 		}else {
 
-			player.pairedRoom = '';
 			
-			socket.emit ('pairingError',  { 'errorMsg' : 'Something Happened. Please try again.'  });
 
 		}
 

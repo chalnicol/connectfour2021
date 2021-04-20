@@ -90,9 +90,11 @@ class Intro extends Phaser.Scene {
             
             if ( this.pairingScreenShown ) this.removePairScreen();
 
-            const gameStr = data.gameType == 0 ? 'Classic' : 'Blitz';
+            this.invites.push ( data );
 
-            this.showInviteScreen ( `You have been invited by '${data.username}' to play '${gameStr}' game.` );
+            this.showInvites ();
+
+            //this.showInviteScreen ( `You have been invited by '${data.username}' to play '${gameStr}' game.` );
 
         });
 
@@ -356,9 +358,12 @@ class Intro extends Phaser.Scene {
         this.promptCont.destroy ();
     }
 
-    showInviteScreen ( txt ) {
+    showInvites () {
 
-        this.isPrompted = true;
+        
+    }
+
+    showInviteScreen ( txt ) {
 
         const btnArrs = [
             { 
