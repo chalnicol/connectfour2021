@@ -222,9 +222,9 @@ class Intro extends Phaser.Scene {
 
             let btn = new MyButton ( this, xp, yp, 150, 100, i, 'pair_btns', '', 0, btxt, 50 );
 
-            btn.on('pointerdown', function () {
+            btn.on('pointerup', function () {
 
-                this.clicked();
+                this.btnState('idle');
 
                 if ( this.id < 10 ) {
 
@@ -304,9 +304,9 @@ class Intro extends Phaser.Scene {
 
                 let btn = new MyButton ( this, -sx + (i * ( bw + bsp)), sy, bw, bh, i, 'promptbtns', '', 0, buttons[i].btnTxt, 40 );
 
-                btn.on('pointerdown', function() {
+                btn.on('pointerup', function() {
 
-                    this.clicked();
+                    this.btnState('idle');
 
                     buttons [i].func();
                 });

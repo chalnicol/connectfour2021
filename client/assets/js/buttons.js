@@ -9,6 +9,8 @@ class MyButton extends Phaser.GameObjects.Container {
 
         this.bg = bg;
 
+        this.isClicked = false;
+
         this.setSize(w, h).setInteractive ();
 
         if ( bg == '' ) {
@@ -26,42 +28,22 @@ class MyButton extends Phaser.GameObjects.Container {
 
         if ( txt != '' ) {
 
-            let myTxt = scene.add.text ( 0, 0, txt,  { color:'#999', fontFamily:'Oswald', fontSize: fs != 0 ? fs : h*0.4 }  ).setOrigin (0.5);
+            let myTxt = scene.add.text ( 0, 0, txt,  { color:'#6e6e6e', fontFamily:'Oswald', fontSize: fs != 0 ? fs : h*0.4 }  ).setOrigin (0.5);
             
             this.add (myTxt);
         }
 
         this.on ('pointerover', function () {
-            
-            if ( bg == '') {
-                this.first.setFillStyle ( 0xd3d3d3, 1 );
-            }else {
-                this.first.setFrame ( 1 );
-            }
-            
+            this.btnState('hovered');
         });
         this.on ('pointerout', function () {
-
-            if ( bg == '') {
-                this.first.setFillStyle ( 0xffffff, 1 );
-            }else {
-                this.first.setFrame ( 0 );
-            }
-
+            this.btnState ('idle');
         });
         this.on ('pointerup', function () {
-
-            if ( bg == '') {
-                this.first.setFillStyle ( 0xffffff, 1 );
-            }else {
-                this.first.setFrame ( 0 );
-            }
-            
+            this.btnState ('idle');
         });
         this.on ('pointerdown', function () {
-
-            this.clicked ();
-
+            this.btnState ('pressed');
         });
         
         scene.add.existing(this);
@@ -97,14 +79,40 @@ class MyButton extends Phaser.GameObjects.Container {
         
     }
 
-    clicked () {
+    btnState ( state = '' ) {
 
-        if ( this.bg == '') {
-            this.first.setFillStyle ( 0xff9999, 1 );
-        }else {
-            this.first.setFrame ( 2 );
+        switch ( state ) {
+
+            case 'hovered':
+
+                if ( this.bg == '') {
+                    this.first.setFillStyle ( 0xd3d3d3, 1 );
+                }else {
+                    this.first.setFrame ( 1 );
+                }
+                break;
+            case 'pressed':
+
+                if ( this.bg == '') {
+                    this.first.setFillStyle ( 0xffff00, 1 );
+                }else {
+                    this.first.setFrame ( 2 );
+                }
+
+                break;
+           
+            case 'idle':
+                if ( this.bg == '') {
+                    this.first.setFillStyle ( 0xffffff, 1 );
+                }else {
+                    this.first.setFrame ( 0 );
+                }
+                break;
+            default:
+                //nothing to do here..
+                break;
         }
-
+        
     }
     
 }

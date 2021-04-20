@@ -229,9 +229,9 @@ class SceneA extends Phaser.Scene {
 
             let btnCont = new MyButton ( this, -50 , (i * 110) + 218, 100, 100, btnArr[i], 'contbtns', 'imgBtns', i).setName (btnArr[i]);
 
-            btnCont.on('pointerdown', function () {
+            btnCont.on('pointerup', function () {
                 
-                this.clicked ();
+                this.btnState ('idle');
 
                 switch (this.id) {
                     case 'exit':
@@ -759,9 +759,9 @@ class SceneA extends Phaser.Scene {
                 
                 let btn = new MyButton ( this, bx + i*(bw+sp), by, bw, bh, i, 'promptbtns', '', '',  btnArr [i].txt, 30 );
 
-                btn.on('pointerdown', function () {
+                btn.on('pointerup', function () {
 
-                    this.clicked();
+                    this.btnState('idle');
 
                     btnArr [i].func();
 
