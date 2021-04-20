@@ -133,7 +133,7 @@ class Intro extends Phaser.Scene {
                 switch ( this.getData('id') ) {
                     case 'but0':
                         socket.emit ('enterGame', {'game' : 0, 'gameType' : 0 });
-                        this.scene.showPairingWaitScreen();
+                        this.scene.showPrompt('Please Wait..', 0, 40, 300, 90 );
                         break;
                     case 'but1':
                         socket.emit ('enterGame', {'game' : 1, 'gameType' : 0 });
