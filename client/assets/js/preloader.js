@@ -50,9 +50,9 @@ class Preloader extends Phaser.Scene {
 
         this.load.image('centerpiece', 'client/assets/images/centerpiece.png');
 
-        this.load.image('cell', 'client/assets/images/cells.png');
+        //this.load.image('cell', 'client/assets/images/cells.png');
 
-        this.load.image('cellbg', 'client/assets/images/cells_bg.png');
+        this.load.image('cellbg', 'client/assets/images/cellsb.png');
 
         this.load.image('plyrInd', 'client/assets/images/profile_main.png');
 

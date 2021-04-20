@@ -33,9 +33,9 @@ class SceneA extends Phaser.Scene {
         this.add.image ( 960, 540, 'bg'); 
         
         //add field bg..
-
         this.add.image (960, 540, 'centerpiece');
 
+        //init grid..
         let csize = 140;
 
         let cx = (1920 - ( csize * 7 ))/2 + csize/2, 
@@ -46,28 +46,40 @@ class SceneA extends Phaser.Scene {
 
             let ix = Math.floor ( i/7 ), iy = i % 7;
 
-            this.add.image ( cx + iy * csize, cy + ix*csize, 'cellbg' );
+            let xp = cx + iy * csize, yp = cy + ix*csize;
 
-            //this.add.text ( cx + iy * csize, cy + ix*csize, i, { fontSize:20, fontFamily:'Arial', color:'#333'}).setOrigin(0.5);
+            this.add.image ( xp, yp, 'cellbg');
+
+            this.gridArr.push ({
+                x : xp,
+                y : yp,
+                resident : 0
+            });
+        
         }
 
+
+        //add columns..
+        var columnsCont = this.add.container (0, 0);
+        
         for ( let i = 0; i < 7; i++ ) {
 
-            let rct = this.add.rectangle ( cx + i* csize, cy + (csize*6)/2 - csize/2, csize, csize*6 ).setInteractive().setData('id', i).setName ('rct'+i);
+            const xp = cx + i* csize, yp = cy + (csize*6)/2 - csize/2;
+
+            let rct = this.add.rectangle ( xp, yp, csize, csize*6 ).setInteractive();
 
             rct.on ('pointerout', function () {
                 this.setFillStyle ( 0xffffff, 0 );
             });
-            rct.on ('pointerup', function () {
-                this.setFillStyle ( 0xffffff, 0 );
-            });
+
             rct.on ('pointerover', function () {
 
                 if ( this.scene.turn == 'self' ){
-                    this.setFillStyle ( 0xffff00, 0.1 );
+                    this.setFillStyle ( 0x005500, 0.2 );
                 }
 
             });
+
             rct.on ('pointerdown', function () {
 
                 if ( this.turn == 'self' && !this.players['self'].isAI ){
@@ -83,37 +95,36 @@ class SceneA extends Phaser.Scene {
                 
             }, this );
             
-        }
-
-        //..
-        this.circCont = this.add.container (0, 0);
-
-        //..
-        for ( let i = 0; i < 42; i++ ) {
-
-            let ix = Math.floor ( i/7 ), iy = i % 7;
-
-            let miniCont = this.add.container ( cx + iy * csize, cy + ix*csize );
-
-            //const rect = this.add.rectangle ( 0, 0, csize, csize, 0xffff00, 1 ).setStrokeStyle ( 1, 0x0a0a0a );
-
-            //const crc = this.add.circle ( 0, 0, csize*0.45, 0xc3c3c3, 1 ).setStrokeStyle ( 1, 0x0a0a0a ); //63
-
-            // const txt = this.add.text ( 0,0, i, {color:'#000', fontSize:30, fontFamily:'Arial'}).setOrigin (0.5);
-
-            //const txtb = this.add.text ( 0, 30, ix +':' +iy, {color:'#000', fontSize: 20, fontFamily:'Arial'}).setOrigin (0.5);
-
-            let img = this.add.image ( 0, 0, 'cell');
-
-            miniCont.add ( img );
-
-            this.gridArr.push ({
-                x : miniCont.x,
-                y : miniCont.y,
-                resident : 0
-            });
+            columnsCont.add ( rct );
 
         }
+
+        //add container for chilps 
+        const chipsCont = this.add.container (0, 0);
+
+        var shape = this.make.graphics();
+
+        shape.fillStyle(0xffff00, 0.5); //  Create a hash shape Graphics object
+
+        shape.beginPath(); //  You have to begin a path for a Geometry mask to work
+
+        shape.fillRect( 470, 0, 980, 167 );
+
+        for ( var i = 0; i<42; i++) {
+            shape.fillCircle ( this.gridArr[i].x, this.gridArr[i].y, 56 );
+        }
+
+        const mask = shape.createGeometryMask();
+
+        columnsCont.setMask ( mask );
+
+        chipsCont.setMask(mask);
+
+        
+        this.circCont = chipsCont;
+        
+
+        //..
 
         this.initSocketIO();
 
