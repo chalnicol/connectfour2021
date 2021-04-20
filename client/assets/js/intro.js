@@ -80,7 +80,7 @@ class Intro extends Phaser.Scene {
             
             if ( this.isPrompted) this.removePrompt ();
 
-            this.showPrompt ( data.errorMsg, 0, 30, 600, 200 );
+            this.showPrompt ( data.errorMsg, 0, 32, 0, 0, 'prompt_sm' );
 
             this.time.delayedCall ( 1500, this.removePrompt, [], this );
 
@@ -126,14 +126,11 @@ class Intro extends Phaser.Scene {
             miniCont.on ('pointerup', function () {
                 //..
                 this.first.setFrame (0);
-            });
-            miniCont.on ('pointerdown', function () {
-              
-                // gametype -> 0 = classic : 1 = blitz
+
                 switch ( this.getData('id') ) {
                     case 'but0':
                         socket.emit ('enterGame', {'game' : 0, 'gameType' : 0 });
-                        this.scene.showPrompt('Please Wait..', 0, 40, 400, 100 );
+                        this.scene.showPrompt('Please Wait..', 0, 40, 0, 0, 'prompt_sm' );
                         break;
                     case 'but1':
                         socket.emit ('enterGame', {'game' : 1, 'gameType' : 0 });
@@ -145,6 +142,12 @@ class Intro extends Phaser.Scene {
                     default:
                         break;
                 }
+
+            });
+            miniCont.on ('pointerdown', function () {
+              
+                this.first.setFrame (2);
+                
 
             });
             
@@ -272,7 +275,7 @@ class Intro extends Phaser.Scene {
         this.pairingScreenCont.destroy();
     }
 
-    showPrompt ( txt, txtPos = 0, txtSize = 40, boxW = 550, boxH = 300, buttons = [] ) {
+    showPrompt ( txt, txtPos = 0, txtSize = 40, boxW = 550, boxH = 300, imgbg='', buttons = [] ) {
 
         this.isPrompted = true;
 
@@ -286,11 +289,23 @@ class Intro extends Phaser.Scene {
         //miniCont
         let miniCont = this.add.container ( 960, 1080 + (boxH/2)  );
 
-        let rcte = this.add.rectangle ( 0, 0, boxW, boxH, 0xf3f3f3, 0.9 ).setStrokeStyle ( 2, 0x9e9e9e );
+        if ( imgbg != ''){
 
-        let txte = this.add.text ( 0, txtPos, txt, { color:'#000', fontFamily:'Oswald', fontSize: txtSize }).setOrigin(0.5);
+            let img = this.add.image ( 0, 0, imgbg );
 
-        miniCont.add ([rcte, txte]);
+            miniCont.add (img);
+
+        } else {
+
+            let rcte = this.add.rectangle ( 0, 0, boxW, boxH, 0xf3f3f3, 0.9 ).setStrokeStyle ( 2, 0x9e9e9e );
+
+            miniCont.add (rcte);
+        }
+        
+
+        let txte = this.add.text ( 0, txtPos, txt, { color:'#6e6e6e', fontFamily:'Oswald', fontSize: txtSize }).setOrigin(0.5);
+
+        miniCont.add (txte);
         
         if ( buttons.length > 0 ) {
 
@@ -298,7 +313,7 @@ class Intro extends Phaser.Scene {
 
             const sx = (buttons.length * (bw + bsp) - bsp)/2 - (bw/2), 
             
-                  sy = 60;
+                  sy = 80;
 
             for ( let i = 0; i < buttons.length; i++ ) {
 
@@ -362,7 +377,7 @@ class Intro extends Phaser.Scene {
             }
         ];
 
-        this.showPrompt ( txt, -50, 30, 800, 300, btnArrs );
+        this.showPrompt ( txt, -30, 30, 0, 0, 'prompt_xl', btnArrs );
 
     }
 
@@ -375,7 +390,7 @@ class Intro extends Phaser.Scene {
             { btnTxt : 'Cancel', func : () => this.cancelPairing() }
         ];
 
-        this.showPrompt ('Please Wait..', -50, 40, 550, 300, btnArrs );
+        this.showPrompt ('Please Wait..', -30, 40, 0, 0, 'prompt' ,btnArrs );
 
         this.autoCancelTimer = this.time.delayedCall ( 10000, this.cancelPairing, [], this );
 
@@ -387,7 +402,7 @@ class Intro extends Phaser.Scene {
 
         this.pairingScreenCont.destroy();
 
-        this.showPrompt ('Waiting for Response..', 0, 40, 600, 200 );
+        this.showPrompt ('Waiting for Response..', 0, 40, 0, 0, 'prompt_sm' );
 
     }
 

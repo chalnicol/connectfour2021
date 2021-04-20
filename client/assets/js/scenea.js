@@ -401,9 +401,9 @@ class SceneA extends Phaser.Scene {
 
             let rct = this.add.rectangle ( 0, yp, 400, 80, 0xf3f3f3, 1 ).setOrigin (0)
             
-            let txt = this.add.text ( 10, yp + 40, nme +':', { color: clr, fontFamily:'Oswald', fontSize : 26 }).setOrigin ( 0, 0.5 );
+            let txt = this.add.text ( 20, yp + 40, nme +':', { color: clr, fontFamily:'Oswald', fontSize : 26 }).setOrigin ( 0, 0.5 );
 
-            let img = this.add.image ( 300, yp + 40, 'emojis', this.emojisThread [i].emoji ).setScale ( 0.8 );
+            let img = this.add.image ( 350, yp + 40, 'emojis', this.emojisThread [i].emoji ).setScale ( 0.8 );
 
             this.emojiThreadCont.add ([rct, txt, img]);
         }
