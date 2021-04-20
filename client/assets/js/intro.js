@@ -10,6 +10,8 @@ class Intro extends Phaser.Scene {
     create () 
     {
 
+        this.invites = [];
+
         this.pairingScreenShown = false;
 
         this.isPairing = false;
@@ -80,7 +82,7 @@ class Intro extends Phaser.Scene {
             
             if ( this.isPrompted) this.removePrompt ();
 
-            this.showPrompt ( data.errorMsg, 0, 32, 0, 0, 'prompt_sm' );
+            this.showPrompt ( data.errorMsg, 0, 34, 0, 0, 'prompt_sm' );
 
             this.time.delayedCall ( 1500, this.removePrompt, [], this );
 
@@ -90,11 +92,13 @@ class Intro extends Phaser.Scene {
             
             if ( this.pairingScreenShown ) this.removePairScreen();
 
-            this.invites.push ( data );
+            //this.invites.push ( data );
 
-            this.showInvites ();
+            //this.showInvites ();
 
-            //this.showInviteScreen ( `You have been invited by '${data.username}' to play '${gameStr}' game.` );
+            const gameStr = data.gameType == 0 ? 'Classic' : 'Blitz';
+
+            this.showInviteScreen ( `You have been invited by '${data.username}' to play '${gameStr}' game.`, data.inviteId );
 
         });
 
@@ -363,21 +367,21 @@ class Intro extends Phaser.Scene {
         
     }
 
-    showInviteScreen ( txt ) {
+    showInviteScreen ( txt, id ) {
 
         const btnArrs = [
             { 
                 btnTxt : 'Later', 
                 func : () => {
                     this.removePrompt ();
-                    socket.emit ('pairingResponse', { 'response' : 0 });
+                    socket.emit ('pairingResponse', { 'inviteId':id,  'response' : 0 });
                 }
             },
             {
                 btnTxt : 'Accept',
                 func : () => {
                     this.removePrompt ();
-                    socket.emit ('pairingResponse', { 'response' : 1 });
+                    socket.emit ('pairingResponse', { 'inviteId':id, 'response' : 1 });
                 }
             }
         ];

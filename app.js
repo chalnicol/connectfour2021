@@ -36,7 +36,7 @@ class Player {
 
 		this.chip = 0;
 
-		//this.invites = [];
+		this.inviteId = '';
 
 	}
 
@@ -47,6 +47,8 @@ class Player {
 		this.roomIndex = 0;
 
 		this.chip = 0;
+
+		this.inviteId = '';
 
 	}
 
@@ -116,15 +118,38 @@ class Invite {
 
 		this.id = id;
 
-		this.roomId = roomId;
-
 		this.hostId = hostId;
 
 		this.friendId = friendId;
 
 		this.gameType = gameType;
 
+		this.pairTimer = null;
+
 		this.startPairTimer ();
+
+	}
+
+	forceStop () {
+
+		if ( playerList.hasOwnProperty ( this.hostId ) ) {
+
+			playerList [ this.hostId ].inviteId = '';
+
+			socketList [ this.hostId ].emit ('pairingError', {'errorMsg': 'Something went wrong.'})
+		}
+
+		if ( playerList.hasOwnProperty ( this.friendId ) ) {
+
+			playerList [ this.friendId ].inviteId = '';
+
+			socketList [ this.friendId ].emit ('pairingError', {'errorMsg': 'Something went wrong.'})
+
+		}
+
+		this.stopPairTimer ();
+
+		this.remove ();
 
 	}
 
@@ -134,10 +159,14 @@ class Invite {
 
 			if ( playerList.hasOwnProperty ( this.hostId ) ) {
 
+				playerList [ this.hostId ].inviteId = '';
+
 				socketList [ this.hostId ].emit ('pairingError', {'errorMsg': 'Friend is taking too long to respond.'})
 			}
 
 			if ( playerList.hasOwnProperty ( this.friendId ) ) {
+
+				playerList [ this.friendId ].inviteId = '';
 
 				socketList [ this.friendId ].emit ('pairingError', {'errorMsg': 'Invite Cancelled.'})
 
@@ -150,14 +179,19 @@ class Invite {
 	}
 
 	stopPairTimer () {
-		
+
 		clearTimeout ( this.pairTimer );
+
+		//console.log ( '-> Invite list timer cleared..', this.id );
 
 	}
 
-	remove () {
+	remove ( ) {
 
 		delete inviteList [ this.id ];
+
+		//console.log ( '-> invite list deleted..', this.id );
+
 	}
 
 }
@@ -169,7 +203,7 @@ io.on('connection', function(socket){
 	
 	socket.on("initUser",  (data) => {
 		
-		console.log ( '-> new player connected: ', data.username );
+		//console.log ( '-> new player connected: ', data.username );
 		
 		let newPlyr = new Player ( socket.id, data.username );
 
@@ -223,7 +257,7 @@ io.on('connection', function(socket){
 
 			};	
 
-			console.log ( '-> '+ plyr.username +' created a room :', roomId );
+			//console.log ( '-> '+ plyr.username +' created a room :', roomId );
 
 			socket.emit ('initGame', gameRoomData ); 
 
@@ -244,7 +278,7 @@ io.on('connection', function(socket){
 
 				plyr.roomId = roomId;
 
-				console.log ( '-> '+ plyr.username +' created a room :', roomId );
+				//console.log ( '-> '+ plyr.username +' created a room :', roomId );
 
 			}else  {
 				
@@ -260,7 +294,7 @@ io.on('connection', function(socket){
 
 				gameRoom.isClosed = true;
 
-				console.log ( '-> '+ plyr.username +' joined the room :', gameRoom.id );
+				//console.log ( '-> '+ plyr.username +' joined the room :', gameRoom.id );
 				
 				//initialize game..
 				initGame ( gameRoom.id );
@@ -289,16 +323,22 @@ io.on('connection', function(socket){
 
 			let friend = playerList [ friendId ];
 			
-			if ( friend.roomId == '' ) {
+			if ( friend.roomId == '' && friend.inviteId == '' ) {
 
-				let inviteId = 'party_' + Date_now() + '_' + Math.floor ( Math.random() * 99999 );
+				let inviteId = 'party_' + Date.now() + '_' + Math.floor ( Math.random() * 99999 );
 
-				let newInvite = new Invite ( inviteId, host.id, invitee.id )
+				let newInvite = new Invite ( inviteId, host.id, friend.id )
 
 				inviteList [ inviteId ] = newInvite;
 
-				socketList [ friendsId ].emit ('pairInvite', { 'invite' : inviteId, 'gameType' : data.gameType, 'username' : plyr.username });
+				//
+				host.inviteId = inviteId;
 
+				//
+				friend.inviteId = inviteId;
+
+				//
+				socketList [ friendId ].emit ('pairInvite', { 'inviteId' : inviteId, 'gameType' : data.gameType, 'username' : host.username });
 
 			}else {
 
@@ -322,6 +362,19 @@ io.on('connection', function(socket){
 
 			let invite = inviteList [ data.inviteId ];
 
+			invite.stopPairTimer();
+
+			//host..
+			let host = playerList [ invite.hostId ];
+
+			host.inviteId = '';
+			
+			//friend..
+			let friend = playerList [ invite.friendId ];
+
+			friend.inviteId = '';
+
+			//..
 			if ( data.response == 0 ) {
 
 				socketList [ invite.hostId ].emit ('pairingError', { 'errorMsg' : 'Friend is not available right now.'  } );
@@ -330,8 +383,7 @@ io.on('connection', function(socket){
 
 			}else {
 
-				
-				let roomId = host.username + '_' + Date.now();
+				let roomId =  playerList[ invite.hostId ].username + '_' + Date.now();
 
 				var newRoom = new GameRoom ( roomId, invite.gameType );
 
@@ -341,15 +393,10 @@ io.on('connection', function(socket){
 
 				roomList [ roomId ] = newRoom;
 
-				//host..
-				let host = playerList [ invite.hostId ];
-
+				//..
 				host.roomId = roomId;
-				
 
-				//friend..
-				let friend = playerList [ invite.friendId ];
-
+				//..
 				friend.roomId = roomId;
 
 				friend.chip = 1;
@@ -368,53 +415,12 @@ io.on('connection', function(socket){
 		}else {
 
 			
-			player.removeInvite ( data.inviteId );
+			player.inviteId = '';
 
 			socket.emit ('pairingError',  { 'errorMsg' : 'Something Happened. Please try again.'  });
 
 		}
-		if ( roomList.hasOwnProperty ( player.pairedRoom ) ) {
-
-			var room = roomList [ player.pairedRoom ];
-
-			room.stopPairTimer ();
-
-			if ( data.response == 0 ) {
-				
-				player.pairedRoom = '';
-
-				let hostId = room.players [0];
-
-				playerList [ hostId ].reset ();
-
-				delete roomList [ player.pairedRoom ];
-
-				console.log ('-> ' + player.username +' has declined. Host has been reset and room has been deleted..')
-
-				socketList [ hostId ].emit ('pairingError', { 'errorMsg' : 'Friend is not available right now.'  } );
-
-			} else {
-
-				player.roomId = player.pairedRoom;
-
-				player.roomIndex = 1;
-
-				player.chip = 1;
-
-				room.players.push ( player.id );
-
-				initGame ( room.id );
-
-			}
-			
-
-		}else {
-
-			
-
-		}
-
-		
+	
 
 	});
 
@@ -473,7 +479,7 @@ io.on('connection', function(socket){
 				socketList [ room.players [i] ].emit ('restartGame');
 			}
 
-			console.log ( '-> Game '+ room.id +' has been restarted.');
+			//console.log ( '-> Game '+ room.id +' has been restarted.');
 		}
 
 	});
@@ -500,7 +506,7 @@ io.on('connection', function(socket){
 
 			let plyr = playerList[socket.id];
 			
-			console.log ('<- ' + plyr.username + ' has left the game : ' + plyr.roomId );
+			//console.log ('<- ' + plyr.username + ' has left the game : ' + plyr.roomId );
 
 			if ( plyr.roomId != '' ) leaveRoom (socket.id);
 
@@ -514,9 +520,11 @@ io.on('connection', function(socket){
 
 			let plyr = playerList[socket.id];
 
-			console.log ('<- ' + plyr.username + ' has been disconnected');
+			//console.log ('<- ' + plyr.username + ' has been disconnected');
 
 			if ( plyr.roomId != '' ) leaveRoom ( plyr.id );
+
+			if ( plyr.inviteId != '') inviteList [ plyr.inviteId ].forceStop();
 
 			delete playerList [socket.id];
 
@@ -531,11 +539,6 @@ io.on('connection', function(socket){
 	});
 
 });
-
-
-
-//............
-
 
 
 function verifyMove ( socketId ) 
@@ -714,7 +717,7 @@ function leaveRoom ( playerId )
 
 		delete roomList [ player.roomId ];
 
-		console.log ( '-> room deleted :', player.roomId );
+		//console.log ( '-> room deleted :', player.roomId );
 
 	}
 
