@@ -72,11 +72,15 @@ class GameRoom {
 
 		this.isGameOn = false;
 
+		this.toRematch = 0;
+
 	}
 
 	initGame () {
 
 		this.isGameOn = true;
+
+		this.gridArr = [];
 
 		for ( let i = 0; i < 42; i++ ) {
 			this.gridArr.push (0);
@@ -90,23 +94,21 @@ class GameRoom {
 
 	}
 
-}
-
-class Invite {
-
-	constructor ( id, gameType, host, invitee ) {
-
-		this.id = id;
-
-		this.gameType = gameType;
-
-		this.host = host; 
-		
-		this.invitee = invitee;
-
+	switchTurn () {
+		this.turn = this.turn == 1 ? 0 : 1;
 	}
 
+	restartGame () {
+
+		this.toRematch = 0;
+
+		this.switchTurn ();
+
+		this.initGame ();
+
+	}
 }
+
 
 io.on('connection', function(socket){
 	
@@ -205,7 +207,7 @@ io.on('connection', function(socket){
 
 				gameRoom.isClosed = true;
 
-				console.log ( '-> '+ plyr.username +' joins the room :', gameRoom.id );
+				console.log ( '-> '+ plyr.username +' joined the room :', gameRoom.id );
 				
 				//initialize game..
 				initGame ( gameRoom.id );
@@ -246,7 +248,7 @@ io.on('connection', function(socket){
 
 				roomList [ roomId ] = newRoom;
 
-				plyr.roomid = roomId;
+				plyr.roomId = roomId;
 
 				friend.pairedRoom = roomId;
 				
@@ -298,7 +300,7 @@ io.on('connection', function(socket){
 
 				player.chip = 1;
 
-				room.players.push ( socket.id );
+				room.players.push ( player.id );
 
 				initGame ( room.id );
 
@@ -319,59 +321,80 @@ io.on('connection', function(socket){
 
 	socket.on("playerMove", function ( data ) {
 
-		if ( verifyClickSent (socket.id) ) {
+		if ( verifyMove (socket.id) ) {
 
-			//console.log ('--> Move received from ' + playerList[socket.id].username + ':', data  + '\n' );
-			
 			var plyr = playerList[socket.id];
 
-			roomList [ plyr.roomid ].setGridTaken ( data );
+			var room = roomList [ plyr.roomId ];
 
-			var oppoId = getOpponentsId ( socket.id );
+			const depth = getDepth ( room.id, data.col );
 
-			var oppoSocket = socketList [ oppoId ];
+			if ( depth != null ) {
 
-			oppoSocket.emit ( 'sendMoveToOpponent', data );
+				for ( var i in room.players ) {
 
-			analyzePlayersMove ( plyr.roomid, data );
+					const turn = room.turn == i ? 'self' : 'oppo';
 
+					socketList [ room.players [i] ].emit ( 'playerMove', { 'col' : data.col, turn : turn  });
+				}
 
-		}else {
+				room.gridArr [depth] = plyr.roomIndex + 1;
+				
+				var isWinner = checkLines ( room.id, depth, plyr.roomIndex + 1 );
 
-			console.log ('--> Click received is invalid. \n');
+				if ( !isWinner ) {
+
+					room.switchTurn ();
+
+				}else {
+					
+					room.endGame ();
+				}
+				
+			}
+
 		}
 
 	});
 	
-	socket.on("playerSendEmoji", function ( data ) {
+	socket.on("playAgain", function () {
+		
+		var plyr = playerList [ socket.id ]
+		
+		var room = roomList [ plyr.roomId ];
+
+		room.toRematch += 1;
+
+		if ( room.toRematch > 1 ) {
+
+			room.restartGame ();
+
+			for ( var i in room.players ) {
+
+				socketList [ room.players [i] ].emit ('restartGame');
+			}
+
+			console.log ( '-> Game '+ room.id +' has been restarted.');
+		}
+
+	});
+	
+	socket.on("sendEmoji", function ( data ) {
 
 		var player = playerList [ socket.id ];
 
 		var room = roomList [ player.roomid ];
 
-		for ( var i = 0; i < room.playerCount; i++ ) {
+		for ( var i in room.players ) {
 
 			var plyr =  ( room.playerIDs [i] == player.id ) ? 'self' : 'oppo';
 			
-			socketList [ room.playerIDs[i] ].emit ( 'showEmoji',  { 'plyr' : plyr, 'frame' : data });
+			socketList [ room.playerIDs[i] ].emit ( 'showEmoji',  { 'plyr' : plyr, 'emoji' : data.emoji });
 
 		}
 
 	});
 
-	socket.on("rematchRequest", function () {
-		
-		var plyr = playerList [ socket.id ]
-		
-		plyr.isReadyForRematch = true;
-		
-		if ( bothPlayersRequestsRematch ( plyr.roomid ) ) {
-
-			resetGame ( plyr.roomid );
-		}
-
-	});
-	
 	socket.on("leaveGame", (data) => {
 		
 		if ( playerList.hasOwnProperty(socket.id) ) {
@@ -416,7 +439,148 @@ io.on('connection', function(socket){
 
 
 
-function getPaired ( pairingId, playerId ) {
+function verifyMove ( socketId ) 
+{
+
+	let plyr = playerList [ socketId ];
+
+	let room = roomList [ plyr.roomId ];
+
+	if ( plyr.roomIndex == room.turn && room.isGameOn ) return true;
+
+	return false;
+
+}
+
+function getDepth ( roomId, col ) 
+{
+
+	var gridArr = roomList [ roomId ].gridArr;
+
+	for ( var i = 0; i < 6; i++ ) {
+
+		let cc = (( 5-i ) * 7) + col;
+
+		if ( gridArr [ cc ] == 0 ) return cc;
+
+	}
+
+	return null;
+
+}
+
+function checkLines ( roomId, depth, clrId ) 
+{
+
+	var room = roomList [roomId];
+
+	const r = Math.floor ( depth/7 ), c = depth % 7;
+
+	//horizontal..
+	for ( var i = 0; i < 4; i++ ) {
+
+		let sPoint = (r * 7) + i;
+
+		let countera = 0;
+
+		for ( var j = 0; j < 4; j++ ) {
+
+			if ( room.gridArr [ sPoint + j ] == clrId ) countera += 1;
+
+		}
+
+		if ( countera > 3 ) return true;
+
+	}
+
+	//vertical..
+	for ( var i = 0; i < 3; i++ ) {
+
+		let sPoint = (i * 7) + c;
+
+		let counterb = 0;
+
+		for ( var j = 0; j < 4; j++ ) {
+
+			if ( room.gridArr [ sPoint + (j*7) ] == clrId ) counterb += 1;
+
+		}
+
+		if ( counterb > 3 ) return true;
+
+	}
+
+	//forward slash..
+	let tr = r, tc = c;
+
+	while ( tr < 5 && tc > 0 ) {
+		tr += 1;
+		tc -= 1;
+	}
+
+	do {
+
+		if ( (tr - 3) >= 0 && ( tc + 3) <= 6 ) {
+
+			let counterc = 0;
+		
+			for ( let i = 0; i < 4; i++ ) {
+
+				let ttr = tr - i, ttc = tc + i;
+
+				let pointa = (ttr * 7) + ttc;
+
+				if ( room.gridArr [ pointa ] == clrId ) counterc += 1;
+			}
+
+			if ( counterc > 3 ) return true;
+
+			tr -= 1;
+			tc += 1;
+
+		}       
+
+	} while ( (tr - 3) >= 0 && ( tc + 3) <= 6 );
+
+
+	//backward slash..
+	let tbr = r, tbc = c;
+
+	while ( tbr > 0 && tbc > 0 ) {
+		tbr -= 1;
+		tbc -= 1;
+	}
+	
+	do {
+
+		if ( (tbr + 3) <=5 && ( tbc + 3) <= 6 ) {
+
+			let counterd = 0;
+		
+			for ( let i = 0; i < 4; i++ ) {
+
+				let ttr = tbr + i, ttc = tbc + i;
+
+				let pointa = (ttr * 7) + ttc;
+
+				if ( room.gridArr [ pointa ] == clrId ) counterd+= 1;
+			}
+
+			if ( counterd > 3 ) return true;
+
+			tbr += 1;
+			tbc += 1;
+
+		}       
+
+	} while ( (tbr + 3) <=5 && ( tbc + 3) <= 6 );
+
+	return false;
+
+}
+
+function getPaired ( pairingId, playerId ) 
+{
 
 	for ( var i in playerList ) {
 
@@ -430,7 +594,8 @@ function getPaired ( pairingId, playerId ) {
 
 }
 
-function leaveRoom ( playerId ) {
+function leaveRoom ( playerId ) 
+{
 
 	let player = playerList [ playerId ];
 
@@ -458,7 +623,8 @@ function leaveRoom ( playerId ) {
 
 }
 
-function getAvailableRoom ( gameType ) {
+function getAvailableRoom ( gameType ) 
+{
 
 	for ( let i in roomList ) {
 		
@@ -470,7 +636,8 @@ function getAvailableRoom ( gameType ) {
 	return '';
 }
 
-function initGame ( roomid ) {
+function initGame ( roomid ) 
+{
 
 	var room = roomList [ roomid ];
 

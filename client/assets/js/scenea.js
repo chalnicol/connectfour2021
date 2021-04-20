@@ -16,11 +16,18 @@ class SceneA extends Phaser.Scene {
         this.gameData = data;
 
         this.gridArr = [];
-     
+        
+        this.emojisThread = [];
+
         this.shotCounter = 0;
         
         this.gameOver = false;
 
+        this.gameInited = false;
+
+        this.isEmoji = false;
+
+        this.sentEmojisShown = false;
 
         //add bg
         this.add.image ( 960, 540, 'bg'); 
@@ -55,15 +62,26 @@ class SceneA extends Phaser.Scene {
                 this.setFillStyle ( 0xffffff, 0 );
             });
             rct.on ('pointerover', function () {
-                this.setFillStyle ( 0xffff00, 0.1 );
+
+                if ( this.scene.turn == 'self' ){
+                    this.setFillStyle ( 0xffff00, 0.1 );
+                }
+
             });
             rct.on ('pointerdown', function () {
 
-                if ( this.scene.turn == 'self' && !this.scene.players['self'].isAI ){
-                    this.scene.makeTurn ( i, 'self' );
+                if ( this.turn == 'self' && !this.players['self'].isAI ){
+
+                    if ( this.gameData.game == 0 ) {
+
+                        this.makeTurn ( i, 'self' );
+                    }else {
+
+                        socket.emit ('playerMove', { 'col' : i });
+                    }
                 }
                 
-            });
+            }, this );
             
         }
 
@@ -97,7 +115,7 @@ class SceneA extends Phaser.Scene {
 
         }
 
-        this.initSocketListeners();
+        this.initSocketIO();
 
         this.initPlayers();
 
@@ -109,10 +127,31 @@ class SceneA extends Phaser.Scene {
 
     }
 
-    initSocketListeners () 
+    initSocketIO () 
     {
-        socket.on('opponentLeft', (data) => {
-            console.log ( 'Opponent Left', data );
+
+        socket.on('restartGame', () => {
+            this.resetGame ();
+        });
+
+        socket.on('opponentLeft', () => {
+            
+            this.gameOver = true;
+
+            if ( this.isPrompted ) this.removePrompt();
+
+            const btnArr = [ { 'txt' : 'Exit',  'func' : () => this.leaveGame() } ];
+
+            this.showPrompt ('Opponent has left the game.', 40, -20, false, btnArr );
+
+        });
+
+        socket.on('playerMove', (data) => {
+            
+            //console.log ( data );
+
+            this.makeTurn ( data.col, data.turn );
+
         });
     }
 
@@ -126,15 +165,14 @@ class SceneA extends Phaser.Scene {
             
             oppoAI = false, 
             
-            oppoChip = 0;
-        
-        let turn = 'self';
-
+            oppoChip = 0,
+            
+            turn = '';
 
         if (this.gameData.game == 0 ) {
 
             //is single player..
-            oppoUsername = names [ Phaser.Math.Between (0, names.length - 1) ];
+            oppoUsername = names [ Phaser.Math.Between (0, names.length - 1) ] + ' (CPU)';
 
             oppoAI = true;
 
@@ -158,7 +196,7 @@ class SceneA extends Phaser.Scene {
             'username' : this.gameData.players['self'].username, 
             'wins' : 0, 
             'isAI' : false, 
-            'chip' : 0
+            'chip' : this.gameData.players['self'].chip
         }
 
         this.players ['oppo'] = { 
@@ -168,28 +206,45 @@ class SceneA extends Phaser.Scene {
             'chip' : oppoChip
         }
 
-        this.turn = turn;
-        
-        
+        this.turn = turn;        
     
     }
     
     createControls () 
     {
 
-        const btnArr = [ 'Exit', 'Sound', 'Music', 'Emoji' ];
+        const btnArr = [ 'exit', 'sound', 'music', 'emoji' ];
 
         for ( let i in btnArr ) {
 
-            let btnCont = new MyButton ( this, -50 , (i * 110) + 218, 100, 100, i, 'contbtns', 'imgBtns', i  );
+            let btnCont = new MyButton ( this, -50 , (i * 110) + 218, 100, 100, btnArr[i], 'contbtns', 'imgBtns', i);
 
             btnCont.on('pointerdown', function () {
                 
                 this.clicked ();
 
-                this.scene.showExitPrompt ();
-                
+                switch (this.id) {
+                    case 'exit':
+                        this.scene.showExitPrompt ();
+                        break;
+                    case 'sound':
 
+                        break;
+                    case 'music':
+
+                        break;
+                    case 'emoji':
+
+                        if ( !this.scene.isEmoji ) {
+                            this.scene.showEmoji();
+                        }else {
+                            this.scene.removeEmoji();
+                        }
+                        
+                        break;
+                    default:
+                }
+               
             });
             
             this.add.tween ({
@@ -236,6 +291,115 @@ class SceneA extends Phaser.Scene {
 
     }
 
+    showEmoji () 
+    {
+        this.isEmoji = true;
+
+        this.emojiContainer = this.add.container ( 240, 620);
+
+        let bgimg = this.add.image ( 0, 0, 'emojibg');
+
+        this.emojiContainer.add ( bgimg );
+
+        const sx = -35, sy = -238;
+
+        for ( let i=0; i<12; i++) {
+
+            let ix = Math.floor ( i/2 ), iy = i%2;
+
+            let cont = this.add.container ( sx + iy * 100, sy + ix* 95 ).setSize (90, 90).setInteractive();
+
+
+            let rct = this.add.rectangle ( 0, 0, 90, 90, 0xffffff, 1 ).setVisible (false);
+
+            let img = this.add.image (  0, 0, 'emojis', i ).setScale ( 90/100 );
+
+            cont.add ([rct, img]);
+
+            cont.on('pointerover', function () {
+                this.first.setVisible ( true );
+            });
+            cont.on('pointerout', function () {
+                this.first.setVisible ( false );
+            });
+            cont.on('pointerup', function () {
+                this.first.setVisible ( false );
+            });
+            cont.on('pointerdown', function () {
+                
+                this.removeEmoji();
+
+                if ( this.gameData.game == 0) {
+
+                    if ( this.sentEmojisShown ) this.removeSentEmojis();
+
+                    this.showSentEmojis ('self', i );
+
+                }else {
+
+                    socket.emit ('sendEmoji', { 'emoji' : i });
+                }
+
+            }, this );
+
+            this.emojiContainer.add ( cont );
+
+        }
+
+    }
+
+    removeEmoji () {
+        
+        this.isEmoji = false;
+
+        this.emojiContainer.destroy();
+    }
+
+    showSentEmojis ( plyr, emoji ) {
+        
+        if ( this.emojisThread.length >= 12 ) this.emojisThread.shift();
+
+        this.emojisThread.push ( { 'plyr' : plyr, 'emoji' : emoji });
+
+        this.emojiThreadCont = this.add.container ( 1600, 0 );
+
+        for ( var i in this.emojisThread ) {
+
+            let yp = 970 - (i * 82);
+
+            let nme = this.players [ this.emojisThread [i].plyr ].username;
+
+            let clr = this.emojisThread [i].plyr == 'self' ? 'blue' : 'red';
+
+            let rct = this.add.rectangle ( 0, yp, 300, 80, 0xf3f3f3, 1 ).setOrigin (0)
+            
+            let txt = this.add.text ( 10, yp + 40, nme +':', { color: clr, fontFamily:'Oswald', fontSize : 30 }).setOrigin ( 0, 0.5 );
+
+            let img = this.add.image ( 200, yp + 40, 'emojis', this.emojisThread [i].emoji ).setScale ( 0.8 );
+
+            this.emojiThreadCont.add ([rct, txt, img]);
+        }
+
+        this.sentEmojisShown = true;
+
+        this.emojiTimer = this.time.delayedCall ( 2000, () => {
+
+            this.removeSentEmojis();
+
+        }, [], this );
+
+    }
+
+    removeSentEmojis () {
+
+        this.emojiTimer.remove();
+        
+        this.sentEmojisShown = false;
+
+        this.emojiThreadCont.destroy();
+
+    }
+
     setTurnIndicator  ( turn ) 
     {
 
@@ -250,39 +414,20 @@ class SceneA extends Phaser.Scene {
     startGame ()
     {
 
-        let cont = this.add.container ( 960, 540 );
+        this.showPrompt ('Initializing..', 40, 0, true );
 
-        let rct = this.add.rectangle ( 0, 0, 550, 100, 0xfefefe, 0.8 );
+        this.time.delayedCall ( 1000, function () {
 
-        let txt = this.add.text ( 0, 0, 'Game starts in 3..', { color:'#333', fontSize: 36, fontFamily :'Oswald'}).setOrigin(0.5);
+            this.gameInited = true;
+            
+            this.setTurnIndicator ( this.turn );
 
-        cont.add ( [ rct, txt ]);
+            this.removePrompt();
+            
+            if ( this.players[ this.turn ].isAI ) this.makeAI();
 
-        var counter = 0;
-
-        this.startTime = this.time.addEvent ({
-            delay : 1000,
-            callback : () => {
-
-                counter ++;
-                cont.last.text = "Game starts in " + (3 - counter) + "..";
-                
-                console.log ( counter );
-
-                if ( counter == 3 ) {
-
-                    this.setTurnIndicator ( this.turn );
-
-                    if ( this.players[ this.turn ].isAI ) this.makeAI();
-                    
-                    cont.destroy();
-                }
-            },
-            callbackScope : this,
-            repeat : 2
-        })
-
-        
+        }, [], this);
+      
     }
 
     makeAI () {
@@ -320,7 +465,8 @@ class SceneA extends Phaser.Scene {
 
     createCircle ( x, y, id, plyr ) {
 
-        let frm = ( this.players[ plyr ].chip == 0 ) ? 0 : 2;
+
+        let frm = ( this.players [ plyr ].chip == 0 ) ? 0 : 2;
 
         let crc = this.add.sprite ( x, 100, 'chips', frm ).setName ('crc' + id );
 
@@ -337,7 +483,7 @@ class SceneA extends Phaser.Scene {
 
     makeTurn ( col, plyr ) {
 
-        if ( !this.gameOver ) {
+        if ( this.gameInited && !this.gameOver  ) {
 
             const depth = this.getDepth ( col );
 
@@ -521,11 +667,11 @@ class SceneA extends Phaser.Scene {
 
     resetGame () {
 
-        console.log ('reset game');
+        if ( this.isPrompted ) this.removePrompt ();
+
+        this.showPrompt ('Game is restarting..', 36, 0, true );
 
         this.anims.remove ('blink');
-
-        if ( this.isPrompted ) this.removePrompt ();
 
         for ( var i in this.gridArr ) {
             this.gridArr [i].resident = 0;
@@ -534,10 +680,7 @@ class SceneA extends Phaser.Scene {
         this.circCont.each ( function (child) {
             child.destroy();
         });
-
-
-        this.showPrompt ('Game is restarting..', 36, 10 );
-
+        
         this.time.delayedCall (1000, function () {
            
             this.removePrompt ();
@@ -551,7 +694,7 @@ class SceneA extends Phaser.Scene {
 
     }
 
-    showPrompt ( myTxt, fs = 40, txtPos = 10 ) {
+    showPrompt ( myTxt, fs = 40, txtPos = 0, sm = false, btnArr = [] ) {
 
         if ( this.isPrompted ) this.removePrompt ();
 
@@ -569,11 +712,40 @@ class SceneA extends Phaser.Scene {
 
         let miniCont = this.add.container ( 960, 1350 );
 
-        let img = this.add.image ( 0, 0, 'prompt');
+        let img = this.add.image ( 0, 0, sm ? 'prompt_sm' : 'prompt' );
 
         let txt = this.add.text (  0, txtPos, myTxt, { fontSize: fs, fontFamily:'Oswald', color: '#9f9f9f' }).setOrigin(0.5);
 
         miniCont.add ([img, txt]);
+
+        if ( btnArr.length > 0 ) {
+
+
+            const bw = 190, bh = 80, sp = 20;
+
+            const bx = ((btnArr.length * (bw + sp)) - sp)/-2  + bw/2, 
+        
+                  by = 90;
+
+            for ( let i = 0; i < btnArr.length; i++ ) {
+                
+                let btn = new MyButton ( this, bx + i*(bw+sp), by, bw, bh, i, 'promptbtns', '', '',  btnArr [i].txt, 30 );
+
+                btn.on('pointerdown', function () {
+
+                    this.clicked();
+
+                    btnArr [i].func();
+
+                });
+
+                miniCont.add ( btn );
+
+            }
+
+
+
+        }
 
         this.promptCont.add( miniCont );
 
@@ -590,88 +762,57 @@ class SceneA extends Phaser.Scene {
 
     }
 
-    addButtonsToPrompt ( cont, btnArr ) {
-
-        const bw = 190, bh = 80, sp = 20;
-
-        const bx = ((btnArr.length * (bw + sp)) - sp)/-2  + bw/2, 
-        
-              by = 90;
-
-        for ( let i = 0; i < btnArr.length; i++ ) {
-            
-            let btn = new MyButton ( this, bx + i*(bw+sp), by, bw, bh, i, 'promptbtns', '', '',  btnArr [i].txt, 30 );
-
-            btn.on('pointerdown', function () {
-
-                this.clicked();
-
-                btnArr [i].func();
-
-            });
-
-            cont.add ( btn );
-
-        }
-
-        
-    }
-
     showEndPrompt () {
 
         const txt = this.turn == 'self' ? 'Congrats, You Win' : 'Sorry, You Lose';
 
-        this.showPrompt ( txt, 40, -20 );
-
-        var _this = this;
-
         const btnArr = [
-            { 'txt' : 'Play Again', 'func' : function () {
-                _this.showRematchPrompt ();
-            }},
-            { 'txt' : 'Exit', 'func' : function () {
-                _this.leaveGame();
-            }},
+            { 
+                'txt' : 'Play Again', 
+                'func' : () => this.playerRematch ()
+            },
+            { 
+                'txt' : 'Exit', 
+                'func' : () => this.leaveGame()
+            },
+
+           
         ];
 
-        this.addButtonsToPrompt ( this.promptCont.last, btnArr );
+        this.showPrompt ( txt, 40, -20, false, btnArr );
 
     }
 
-    showRematchPrompt () {
+    playerRematch () {
 
-        this.showPrompt ('Waiting for opponent..', 35 );
-
-        //fake decisiion..
-        const rnd = Phaser.Math.Between (0, 9);
-
-        this.time.delayedCall ( 1000, function () {
-            if ( rnd < 2 ) {
-                this.showOpponentLeavesPrompt ();
-            }else {
-                this.resetGame();
-            }
+        if ( this.gameData.game == 0 ) {
             
-        }, [], this);
+            this.resetGame ();
 
+        }else {
+
+            this.showPrompt ('Waiting for response..', 35, 0, true );
+
+            socket.emit ('playAgain');
+        }
+        
     }
 
     showExitPrompt () {
 
-        this.showPrompt ( 'Are you sure you want to leave?', 30, -20 );
 
         const btnArr = [
             { 'txt' : 'Yes', 'func' : () => this.leaveGame () },
             { 'txt' : 'No', 'func' : () => this.removePrompt () }
         ];
 
-        this.addButtonsToPrompt ( this.promptCont.last, btnArr );
+        this.showPrompt ( 'Are you sure you want to leave?', 30, -20, false, btnArr );
 
     }
 
     showOpponentLeavesPrompt () {
 
-        this.showPrompt ('Opponent Leaves. Leaving Game..', 32 );
+        this.showPrompt ('Opponent Leaves. Leaving Game..', 32, 0, true );
 
         this.time.delayedCall ( 1000, function () {
             this.leaveGame ();
@@ -694,5 +835,7 @@ class SceneA extends Phaser.Scene {
 
         this.scene.start ('Intro');
     }
+
+
     
 }

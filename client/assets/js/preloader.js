@@ -58,7 +58,13 @@ class Preloader extends Phaser.Scene {
 
         this.load.image('prompt', 'client/assets/images/prompt.png');
 
+        this.load.image('prompt_sm', 'client/assets/images/prompt_sm.png');
+
         this.load.image('pair_bg', 'client/assets/images/pair_bg.png');
+
+        this.load.image('emojibg', 'client/assets/images/emojibg.png');
+
+        this.load.spritesheet('emojis', 'client/assets/images/emojis.png', { frameWidth: 100, frameHeight: 100 });
 
         this.load.spritesheet('pair_btns', 'client/assets/images/pair_btns.png', { frameWidth: 160, frameHeight: 110 });
 
