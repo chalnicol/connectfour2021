@@ -79,7 +79,7 @@ class SceneA extends Phaser.Scene {
             rct.on ('pointerover', function () {
 
                 if ( this.scene.turn == 'self' ){
-                    this.setFillStyle ( 0x005500, 0.2 );
+                    this.setFillStyle ( 0xffff00, 0.1 );
                 }
 
             });
@@ -198,9 +198,13 @@ class SceneA extends Phaser.Scene {
 
         socket.on('showEmoji', ( data ) => { 
             
-            if ( this.sentEmojisShown ) this.removeSentEmojis();
+            this.time.delayedCall (500, () => {
 
-            this.showSentEmojis ( data.plyr, data.emoji );
+                if ( this.sentEmojisShown ) this.removeSentEmojis();
+
+                this.showSentEmojis ( data.plyr, data.emoji );
+
+            }, [], this);
 
         });
 
@@ -432,15 +436,18 @@ class SceneA extends Phaser.Scene {
 
         if ( this.gameData.game == 0) {
 
-            if ( this.sentEmojisShown ) this.removeSentEmojis();
+            this.time.delayedCall ( 500, () => {
 
-            this.showSentEmojis ('self', emoji );
+                if ( this.sentEmojisShown ) this.removeSentEmojis();
+
+                this.showSentEmojis ('self', emoji );
+
+            }, [], this );
+
 
             this.time.delayedCall ( 2000, () => {
 
                 if ( this.sentEmojisShown ) this.removeSentEmojis();
-
-                this.playSound ('message');
 
                 this.showSentEmojis ('oppo', Math.floor ( Math.random() * 12 ));
 
@@ -470,28 +477,64 @@ class SceneA extends Phaser.Scene {
 
     showSentEmojis ( plyr, emoji ) {
         
+        this.playSound ('message');
+
         if ( this.emojisThread.length >= 6 ) this.emojisThread.shift();
 
         this.emojisThread.push ( { 'plyr' : plyr, 'emoji' : emoji });
 
+        //..
         this.emojiThreadCont = this.add.container ( 1500, 0 );
 
-        for ( var i in this.emojisThread ) {
 
-            let yp = 970 - (i * 85);
+        //const prevPost = this.add.container (0, 970 - (this.emojisThread.length * 85) );
 
+        const total = this.emojisThread.length - 1;
+
+        for ( let i in this.emojisThread ) {
+
+            let yp = 1010 - ( (total - i) * 85);
+
+            const miniCont = this.add.container ( 210, yp );
+            
             let nme = this.players [ this.emojisThread [i].plyr ].username;
 
             let clr = this.emojisThread [i].plyr == 'self' ? '#33cc33' : '#ff6600';
 
-            let rct = this.add.rectangle ( 0, yp, 400, 80, 0xf3f3f3, 0.8 ).setOrigin (0)
+            let rct = this.add.rectangle ( 0, 0, 400, 80, 0xcecece, 0.5 );
             
-            let txt = this.add.text ( 20, yp + 40, nme +':', { color: clr, fontFamily:'Oswald', fontSize : 26 }).setOrigin ( 0, 0.5 );
+            let txt = this.add.text ( -180, 0, nme +':', { color: clr, fontFamily:'Oswald', fontSize : 26 }).setOrigin ( 0, 0.5 );
 
-            let img = this.add.image ( 350, yp + 40, 'emojis', this.emojisThread [i].emoji ).setScale ( 0.8 );
+            let img = this.add.image ( 150, 0, 'emojis', this.emojisThread [i].emoji ).setScale ( 0.8 );
 
-            this.emojiThreadCont.add ([rct, txt, img]);
+            miniCont.add ([rct, txt, img]);
+
+            if ( i >= total ) {
+
+                miniCont.first.setFillStyle (0xf3f3f3, 0.6);
+                
+                miniCont.setScale (0.5)
+                
+                this.add.tween ({
+                    targets : miniCont,
+                    scaleX : 1, scaleY : 1,
+                    duration : 300,
+                    easeParams : [ 1.2, 0.6 ],
+                    ease : 'Elastic'
+                });
+            }
+
+            this.emojiThreadCont.add ( miniCont);
+
         }
+
+
+
+
+        //let newEs = this.add.container ( 0, 0 );
+
+
+        
 
         this.sentEmojisShown = true;
 
@@ -777,7 +820,7 @@ class SceneA extends Phaser.Scene {
 
         this.time.delayedCall ( 500, () => {
             
-            this.playSound ('ending');
+            this.playSound ('ending', 0.3);
 
             this.showEndPrompt ();
 
