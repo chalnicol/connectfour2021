@@ -53,6 +53,28 @@ class Intro extends Phaser.Scene {
 
         this.initSocketIO ();
 
+        this.initSoundFx ();
+
+    }
+
+    playSound  ( snd, vol=0.5 ) {
+
+        this.soundFx.play ( snd, { volume : vol });
+
+    }
+
+    initSoundFx () 
+    {
+        //sfx
+        this.soundFx = this.sound.addAudioSprite('sfx');
+
+        //bg music..
+        this.bgmusic = this.sound.add('introbg').setVolume(0.1).setLoop(true);
+
+        this.bgmusic.play();
+
+        
+
     }
 
     initSocketIO () {
@@ -154,6 +176,7 @@ class Intro extends Phaser.Scene {
               
                 this.first.setFrame (2);
                 
+                this.scene.playSound ('clicka');
 
             });
             
@@ -193,7 +216,10 @@ class Intro extends Phaser.Scene {
 
         let xb = this.add.rectangle ( 221, -305, 80, 80 ).setInteractive ();
 
-        xb.on ('pointerdown', () => {
+        xb.on ('pointerup', () => {
+            
+            this.playSound ('clicka');
+
             this.removePairScreen();
         });
         //221 -305
@@ -230,6 +256,14 @@ class Intro extends Phaser.Scene {
             }
 
             let btn = new MyButton ( this, xp, yp, 150, 100, i, 'pair_btns', '', 0, btxt, 50 );
+
+            
+            btn.on('pointerdown', function () {
+
+                this.btnState('pressed');
+
+                this.scene.playSound ('beep', 0.2);
+            });
 
             btn.on('pointerup', function () {
 
@@ -325,6 +359,14 @@ class Intro extends Phaser.Scene {
 
                 let btn = new MyButton ( this, -sx + (i * ( bw + bsp)), sy, bw, bh, i, 'promptbtns', '', 0, buttons[i].btnTxt, 40 );
 
+
+                btn.on('pointerdown', function() {
+
+                    this.btnState ('pressed');
+
+                    this.scene.playSound ('clicka');
+
+                });
                 btn.on('pointerup', function() {
 
                     this.btnState('idle');
@@ -432,6 +474,8 @@ class Intro extends Phaser.Scene {
         if ( this.isPairing )  this.autoCancelTimer.remove();
 
         socket.removeAllListeners();
+
+        this.bgmusic.stop();
 
         this.scene.start ('SceneA', data );
 

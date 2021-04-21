@@ -34,14 +34,15 @@ class Preloader extends Phaser.Scene {
         });
 
         
-        // this.load.audioSprite('sfx', 'client/assets/sfx/fx_mixdown.json', [
-        //     'client/assets/sfx/sfx.ogg',
-        //     'client/assets/sfx/sfx.mp3'
-        // ]);
+        this.load.audioSprite('sfx', 'client/assets/sfx/fx_mixdown.json', [
+            'client/assets/sfx/sfx.ogg',
+            'client/assets/sfx/sfx.mp3'
+        ]);
         
-        // this.load.audio ('bgsound2', ['client/assets/sfx/bgsound.ogg', 'client/assets/sfx/bgsound.mp3'] );
+        this.load.audio ('introbg', ['client/assets/sfx/lounge.ogg', 'client/assets/sfx/lounge.mp3'] );
 
-        // this.load.audio ('bgsound', ['client/assets/sfx/bgsound2.ogg', 'client/assets/sfx/bgsound2.mp3'] );
+        this.load.audio ('sceneabg', ['client/assets/sfx/starcommander.ogg', 'client/assets/sfx/starcommander.mp3'] );
+
         this.load.image('bg', 'client/assets/images/bg.jpg');
 
         this.load.image('title', 'client/assets/images/title.png');
@@ -49,8 +50,6 @@ class Preloader extends Phaser.Scene {
         this.load.image('profile', 'client/assets/images/profile.png');
 
         this.load.image('centerpiece', 'client/assets/images/centerpiece.png');
-
-        //this.load.image('cell', 'client/assets/images/cells.png');
 
         this.load.image('cellbg', 'client/assets/images/cellsb.png');
 

@@ -29,6 +29,10 @@ class SceneA extends Phaser.Scene {
 
         this.sentEmojisShown = false;
 
+        this.musicOff = false;
+
+        this.soundOff = false;
+
         //add bg
         this.add.image ( 960, 540, 'bg'); 
         
@@ -134,8 +138,39 @@ class SceneA extends Phaser.Scene {
 
         this.createControls ();
 
+        this.initSoundFx ();
+
         this.startGame ();
 
+    }
+
+    playMusic ( off = false ){
+
+        if ( off ) {
+            this.bgmusic.pause();
+        }else {
+            this.bgmusic.resume();
+        }
+
+    }
+
+    playSound  ( snd, vol=0.5 ) {
+
+        if ( !this.soundOff) this.soundFx.play ( snd, { volume : vol });
+
+    }
+
+    initSoundFx () 
+    {
+        //sfx
+        this.soundFx = this.sound.addAudioSprite('sfx');
+
+        //bg music..
+        this.bgmusic = this.sound.add('sceneabg').setVolume(0.1).setLoop(true);
+
+        this.bgmusic.play();
+
+    
     }
 
     initSocketIO () 
@@ -249,9 +284,20 @@ class SceneA extends Phaser.Scene {
                         this.scene.showExitPrompt ();
                         break;
                     case 'sound':
+                        this.scene.soundOff = !this.scene.soundOff;
+
+                        console.log ( this.imgFrame);
+
+                        this.getAt(1).setFrame ( this.scene.soundOff ? Number(this.imgFrame)+3 : this.imgFrame );
 
                         break;
                     case 'music':
+
+                        this.scene.musicOff = !this.scene.musicOff;
+
+                        this.getAt(1).setFrame ( this.scene.musicOff ? Number(this.imgFrame)+3 : this.imgFrame );
+
+                        this.scene.playMusic ( this.scene.musicOff );
 
                         break;
                     case 'emoji':
@@ -266,6 +312,13 @@ class SceneA extends Phaser.Scene {
                     default:
                 }
                
+            });
+            btnCont.on('pointerdown', function () {
+                
+                this.btnState ('pressed');
+
+                this.scene.playSound ('clicka');
+              
             });
             
             this.add.tween ({
@@ -345,45 +398,57 @@ class SceneA extends Phaser.Scene {
             cont.on('pointerout', function () {
                 this.first.setVisible ( false );
             });
-            cont.on('pointerup', function () {
-                this.first.setVisible ( false );
-            });
             cont.on('pointerdown', function () {
+
+                this.scene.playSound ('clicka');
+
+            });
+            cont.on('pointerup', function () {
                 
-                this.removeEmoji();
+                this.first.setVisible ( false );
 
-                if ( this.gameData.game == 0) {
-
-                    if ( this.sentEmojisShown ) this.removeSentEmojis();
-
-                    this.showSentEmojis ('self', i );
-
-                    this.time.delayedCall ( 2000, () => {
-
-                        if ( this.sentEmojisShown ) this.removeSentEmojis();
-
-                        this.showSentEmojis ('oppo', Math.floor ( Math.random() * 12 ));
-
-                    }, [], this);
-
-
-                }else {
-
-                    socket.emit ('sendEmoji', { 'emoji' : i });
-                }
-
-                //...disable emoji btns for 2 secs..
-                this.controlBtnsCont.getByName('emoji').removeInteractive();
-
-                this.time.delayedCall ( 4000, () => {
-                    this.controlBtnsCont.getByName('emoji').setInteractive();
-                }, [], this );
+                this.scene.sendEmoji ( i );                
             
-            }, this );
+            });
 
             this.emojiContainer.add ( cont );
 
         }
+
+    }
+
+    sendEmoji ( emoji ) {
+
+        this.removeEmoji();
+
+        if ( this.gameData.game == 0) {
+
+            if ( this.sentEmojisShown ) this.removeSentEmojis();
+
+            this.showSentEmojis ('self', emoji );
+
+            this.time.delayedCall ( 2000, () => {
+
+                if ( this.sentEmojisShown ) this.removeSentEmojis();
+
+                this.playSound ('message');
+
+                this.showSentEmojis ('oppo', Math.floor ( Math.random() * 12 ));
+
+            }, [], this);
+
+
+        }else {
+
+            socket.emit ('sendEmoji', { 'emoji' : emoji });
+        }
+
+        //...disable emoji btns for 2 secs..
+        this.controlBtnsCont.getByName('emoji').removeInteractive();
+
+        this.time.delayedCall ( 4000, () => {
+            this.controlBtnsCont.getByName('emoji').setInteractive();
+        }, [], this );
 
     }
 
@@ -404,13 +469,13 @@ class SceneA extends Phaser.Scene {
 
         for ( var i in this.emojisThread ) {
 
-            let yp = 970 - (i * 82);
+            let yp = 970 - (i * 85);
 
             let nme = this.players [ this.emojisThread [i].plyr ].username;
 
             let clr = this.emojisThread [i].plyr == 'self' ? '#33cc33' : '#ff6600';
 
-            let rct = this.add.rectangle ( 0, yp, 400, 80, 0xf3f3f3, 1 ).setOrigin (0)
+            let rct = this.add.rectangle ( 0, yp, 400, 80, 0xf3f3f3, 0.8 ).setOrigin (0)
             
             let txt = this.add.text ( 20, yp + 40, nme +':', { color: clr, fontFamily:'Oswald', fontSize : 26 }).setOrigin ( 0, 0.5 );
 
@@ -481,6 +546,8 @@ class SceneA extends Phaser.Scene {
         let rnd = Phaser.Math.Between (0, tmp.length - 1 );
 
         this.time.delayedCall ( 500, function () {
+            
+           
             this.makeTurn ( tmp[rnd] % 7, this.turn );
         }, [], this);
     
@@ -524,6 +591,8 @@ class SceneA extends Phaser.Scene {
 
         if ( this.gameInited && !this.gameOver  ) {
 
+            this.playSound ('clickb');
+
             const depth = this.getDepth ( col );
 
             if ( depth != null ) {
@@ -559,7 +628,7 @@ class SceneA extends Phaser.Scene {
         this.setTurnIndicator ( this.turn );
 
         if ( this.players[ this.turn ].isAI ) this.makeAI();
-
+        
     }
 
     checkLines ( depth, clrId ) 
@@ -694,13 +763,20 @@ class SceneA extends Phaser.Scene {
 
     endGame () {
 
+        
         this.gameOver = true;
 
         this.players [ this.turn ].wins += 1;
 
         this.playerIndicatorsCont.getByName ( this.turn ).last.text = 'Wins : ' +  this.players [ this.turn ].wins;
 
-        this.time.delayedCall ( 500, this.showEndPrompt, [], this );
+        this.time.delayedCall ( 500, () => {
+            
+            this.playSound ('ending');
+
+            this.showEndPrompt ();
+
+        }, [], this );
 
     }
 
@@ -775,6 +851,13 @@ class SceneA extends Phaser.Scene {
                     this.btnState('idle');
 
                     btnArr [i].func();
+
+                });
+                btn.on('pointerdown', function () {
+                    
+                    this.btnState ('pressed');
+
+                    this.scene.playSound ('clicka');
 
                 });
 
@@ -871,6 +954,8 @@ class SceneA extends Phaser.Scene {
         socket.emit ('leaveGame');
 
         socket.removeAllListeners();
+
+        this.bgmusic.stop();
 
         this.scene.start ('Intro');
     }

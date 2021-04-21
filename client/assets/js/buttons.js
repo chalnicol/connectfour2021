@@ -9,6 +9,10 @@ class MyButton extends Phaser.GameObjects.Container {
 
         this.bg = bg;
 
+        this.img = img;
+
+        this.imgFrame = imgFrame;
+
         this.isClicked = false;
 
         this.setSize(w, h).setInteractive ();
