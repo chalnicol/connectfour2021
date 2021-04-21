@@ -7,33 +7,6 @@ class Preloader extends Phaser.Scene {
     preload ()
     {
         
-        let _gW = this.game.config.width,
-            _gH = this.game.config.height;
-
-        this.add.text ( _gW/2, _gH/2, '', { fontSize: 36, fontFamily:'Oswald', color:'#fff'}).setOrigin(0.5);
-
-        let txt = this.add.text (_gW/2, _gH*0.43, 'Loading : 0%', { color:'#333', fontFamily:'Oswald', fontSize:20 }).setOrigin(0.5);
-
-        //..
-        let brct = this.add.rectangle ( (_gW - 350 )/2, _gH/2, 350, 40 ).setStrokeStyle (3, 0x0a0a0a).setOrigin(0, 0.5);
-        //..
-        let rW = 340, rH = 30;
-
-        let rct = this.add.rectangle ( (_gW - rW)/2, _gH/2, 5, rH, 0x6a6a6a, 1 ).setOrigin(0, 0.5);
-
-        this.load.on ('complete', function () {
-            this.scene.start('Intro');
-        }, this);
-
-        this.load.on ('progress', function (progress) {
-
-            txt.setText ( 'Loading : ' + Math.ceil( progress * 100 ) + '%' );
-
-            if ( (rW * progress) > 5) rct.setSize ( rW * progress, rH );
-
-        });
-
-        
         this.load.audioSprite('sfx', 'client/assets/sfx/fx_mixdown.json', [
             'client/assets/sfx/sfx.ogg',
             'client/assets/sfx/sfx.mp3'
@@ -65,6 +38,9 @@ class Preloader extends Phaser.Scene {
 
         this.load.image('emojibg', 'client/assets/images/emojibg.png');
 
+
+        this.load.spritesheet('proceed', 'client/assets/images/proceed.png', { frameWidth: 180, frameHeight: 180 });
+
         this.load.spritesheet('emojis', 'client/assets/images/emojis.png', { frameWidth: 100, frameHeight: 100 });
 
         this.load.spritesheet('pair_btns', 'client/assets/images/pair_btns.png', { frameWidth: 160, frameHeight: 110 });
@@ -79,6 +55,57 @@ class Preloader extends Phaser.Scene {
 
         this.load.spritesheet('contbtns', 'client/assets/images/contbtns.png', { frameWidth: 100, frameHeight: 100 });
         
+
+        //progress bar
+       
+        const rW = 510, rH = 30;
+
+        let preloadCont = this.add.container ( 960, 450 );
+
+        let txta = this.add.text ( 0, -(rH + 30), 'Loading Files : 0%', { color:'#3a3a3a', fontFamily: 'Oswald', fontSize: 30 }).setOrigin(0.5);
+
+        let recta = this.add.rectangle ( 0, 0, rW + 8, rH + 8 ).setStrokeStyle ( 2, 0x0a0a0a );
+
+        let rectb = this.add.rectangle ( -rW/2, -rH/2, 5, rH, 0x3a3a3a, 1 ).setOrigin ( 0 );
+
+        preloadCont.add ( [ txta, recta, rectb ] );
+
+
+        this.load.on ('complete', function () {
+
+            preloadCont.visible = false;
+
+            this.showProceed ();
+
+        }, this);
+
+        this.load.on ('progress', function (progress) {
+
+            preloadCont.last.width = progress * rW;
+
+            preloadCont.first.text = 'Loading Files : ' +  Math.floor (progress  * 100)  + '%';
+
+        });
+
+    }
+
+    showProceed () {
+
+        var img = this.add.image ( 960, 540, 'proceed').setInteractive ();
+
+        img.on ('pointerover', function () {
+            this.setFrame (1);
+        });
+        img.on ('pointerdown', function () {
+            this.setFrame (2);
+        });
+        img.on ('pointerout', function () {
+            this.setFrame (0);
+        });
+        img.on ('pointerup', () => {
+
+            this.scene.start('Intro');
+        });
 
     }
     
