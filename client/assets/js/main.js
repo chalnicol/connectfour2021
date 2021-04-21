@@ -14,7 +14,7 @@ window.onload = function () {
             height: 1080
         },
         audio: {
-            disableWebAudio: true
+            disableWebAudio: false
         },
         backgroundColor: '#ffffff',
         scene: [ Preloader, Intro, SceneA ]

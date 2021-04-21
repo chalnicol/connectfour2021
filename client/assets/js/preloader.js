@@ -16,7 +16,7 @@ class Preloader extends Phaser.Scene {
 
         this.load.audio ('sceneabg', ['client/assets/sfx/starcommander.ogg', 'client/assets/sfx/starcommander.mp3'] );
 
-        this.load.image('bg', 'client/assets/images/bg.jpg');
+        this.load.image('bg', 'client/assets/images/bg2.jpg');
 
         this.load.image('title', 'client/assets/images/title.png');
 
@@ -38,6 +38,7 @@ class Preloader extends Phaser.Scene {
 
         this.load.image('emojibg', 'client/assets/images/emojibg.png');
 
+        this.load.image('clickhere', 'client/assets/images/clickhere.png');
 
         this.load.spritesheet('proceed', 'client/assets/images/proceed.png', { frameWidth: 180, frameHeight: 180 });
 
@@ -90,6 +91,8 @@ class Preloader extends Phaser.Scene {
     }
 
     showProceed () {
+
+        var click = this.add.image ( 960, 540, 'clickhere');
 
         var img = this.add.image ( 960, 540, 'proceed').setInteractive ();
 
