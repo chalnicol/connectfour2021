@@ -112,7 +112,7 @@ class SceneA extends Phaser.Scene {
 
         shape.beginPath(); //  You have to begin a path for a Geometry mask to work
 
-        shape.fillRect( 470, 0, 980, 167 );
+        shape.fillRect( 470, 0, 980, 170 );
 
         for ( var i = 0; i<42; i++) {
             shape.fillCircle ( this.gridArr[i].x, this.gridArr[i].y, 56 );
@@ -127,7 +127,6 @@ class SceneA extends Phaser.Scene {
         
         this.circCont = chipsCont;
         
-
         //..
 
         this.initSocketIO();
@@ -138,9 +137,30 @@ class SceneA extends Phaser.Scene {
 
         this.createControls ();
 
+        this.createAnimations();
+
         this.initSoundFx ();
 
         this.startGame ();
+
+    }
+
+    createAnimations () 
+    {
+        //create anims..
+        this.anims.create( {
+            key: 'blink0',
+            frames: this.anims.generateFrameNumbers( 'chips' , { frames : [ 0,1 ] }),
+            frameRate: 2,
+            repeat: -1
+        });
+
+        this.anims.create( {
+            key: 'blink1',
+            frames: this.anims.generateFrameNumbers( 'chips' , { frames : [ 2,3 ] }),
+            frameRate: 2,
+            repeat: -1
+        });
 
     }
 
@@ -245,20 +265,9 @@ class SceneA extends Phaser.Scene {
         }   
 
         //..
+        this.players ['self'] = new Player ('self', this.gameData.players['self'].username, this.gameData.players['self'].chip );
 
-        this.players ['self'] = { 
-            'username' : this.gameData.players['self'].username, 
-            'wins' : 0, 
-            'isAI' : false, 
-            'chip' : this.gameData.players['self'].chip
-        }
-
-        this.players ['oppo'] = { 
-            'username' : oppoUsername, 
-            'wins' : 0, 
-            'isAI' : oppoAI , 
-            'chip' : oppoChip
-        }
+        this.players ['oppo'] = new Player ('oppo', oppoUsername, oppoChip, oppoAI );
 
         this.turn = turn;        
     
@@ -574,7 +583,7 @@ class SceneA extends Phaser.Scene {
 
         let frm = ( this.players [ plyr ].chip == 0 ) ? 0 : 2;
 
-        let crc = this.add.sprite ( x, 100, 'chips', frm ).setName ('crc' + id );
+        let crc = this.add.sprite ( x, 150, 'chips', frm ).setName ('crc' + id );
 
         this.add.tween ({
             targets : crc,
@@ -742,22 +751,18 @@ class SceneA extends Phaser.Scene {
     
     illuminate ( arr ) {
 
-        const frm =  ( this.players [ this.turn ].chip == 0 ) ? 0 : 2;
+        const winChip = this.players [ this.turn ].chip;
 
-        this.anims.create( {
-            key: 'blink',
-            frames: this.anims.generateFrameNumbers( 'chips' , { frames : [ frm , frm + 1 ] }),
-            frameRate: 2,
-            repeat: -1
-        });
+        //console.log ('chip', winChip );
 
         for ( var i in arr ) {
 
-            let crc = this.circCont.getByName ('crc' + arr[i] );
+            let crc = this.circCont.getByName ( 'crc' + arr[i] );
 
-            crc.play ('blink');
+            crc.play ('blink' + winChip);
 
         }
+
 
     }
 
@@ -829,7 +834,7 @@ class SceneA extends Phaser.Scene {
 
         let img = this.add.image ( 0, 0, sm ? 'prompt_sm' : 'prompt' );
 
-        let txt = this.add.text (  0, txtPos, myTxt, { fontSize: fs, fontFamily:'Oswald', color: '#9f9f9f' }).setOrigin(0.5);
+        let txt = this.add.text (  0, txtPos, myTxt, { fontSize: fs, fontFamily:'Oswald', color: '#6e6e6e' }).setOrigin(0.5);
 
         miniCont.add ([img, txt]);
 

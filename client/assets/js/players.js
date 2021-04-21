@@ -1,6 +1,6 @@
 class Player {
 
-    constructor ( id, username, wins, chip, isAI ) {
+    constructor ( id, username, chip, isAI = false ) {
         
         this.id = id;
         
@@ -8,11 +8,10 @@ class Player {
 
         this.chip = chip;
 
-        this.wins = wins;
-
         this.isAI = isAI;
 
-    }
+        this.wins = 0;
 
+    }
 
 }

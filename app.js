@@ -207,23 +207,17 @@ io.on('connection', function(socket){
 		
 		let newPlyr = new Player ( socket.id, data.username );
 
-		newPlyr.pid = Math.floor ( Math.random() * 99999 );
-
 		playerList [ socket.id ] = newPlyr;	
 
-		const playersCount = Object.keys(socketList).length;
-
-		socket.broadcast.emit ('playersOnline', { 'playersCount' : playersCount });
+		socket.broadcast.emit ('playersOnline', { 'playersCount' :  Object.keys(socketList).length  });
 
 	});
 
 	socket.on ('getInitData', () => {
 		
-		const playersCount = Object.keys(socketList).length;
-
 		const plyr = playerList [ socket.id ];
 
-		socket.emit ('initDataSent', { 'username': plyr.username, 'pairingId': plyr.pairingId, 'playersCount' : playersCount });
+		socket.emit ('initDataSent', { 'username': plyr.username, 'pairingId': plyr.pairingId, 'playersCount' : Object.keys(socketList).length });
 		
 	});
 
@@ -354,7 +348,7 @@ io.on('connection', function(socket){
 
 	});
 
-	socket.on("pairingResponse", function (data) {
+	socket.on("pairingResponse", ( data ) => {
 
 		var player = playerList [socket.id];
 
@@ -424,7 +418,7 @@ io.on('connection', function(socket){
 
 	});
 
-	socket.on("playerMove", function ( data ) {
+	socket.on("playerMove", ( data ) => {
 
 		if ( verifyMove (socket.id) ) {
 
@@ -462,7 +456,7 @@ io.on('connection', function(socket){
 
 	});
 	
-	socket.on("playAgain", function () {
+	socket.on("playAgain", () => {
 		
 		var plyr = playerList [ socket.id ]
 		
@@ -484,7 +478,7 @@ io.on('connection', function(socket){
 
 	});
 	
-	socket.on("sendEmoji", function ( data ) {
+	socket.on("sendEmoji", ( data ) => {
 
 		var player = playerList [ socket.id ];
 
