@@ -33,6 +33,9 @@ class SceneA extends Phaser.Scene {
 
         this.soundOff = false;
 
+        this.shotHistory = [];
+
+
         //add bg
         this.add.image ( 960, 540, 'bg'); 
         
@@ -53,6 +56,8 @@ class SceneA extends Phaser.Scene {
             let xp = cx + iy * csize, yp = cy + ix*csize;
 
             this.add.image ( xp, yp, 'cellbg');
+
+            this.add.text ( xp, yp, i, { color:'#333', fontFamily:'Oswald', fontSize: 20 }).setOrigin(0.5);
 
             this.gridArr.push ({
                 x : xp,
@@ -528,14 +533,6 @@ class SceneA extends Phaser.Scene {
 
         }
 
-
-
-
-        //let newEs = this.add.container ( 0, 0 );
-
-
-        
-
         this.sentEmojisShown = true;
 
         this.emojiTimer = this.time.delayedCall ( 3000, () => {
@@ -586,21 +583,29 @@ class SceneA extends Phaser.Scene {
       
     }
 
-    makeAI () {
+
+    getRandomShot () {
 
         let tmp = [];
-
     
         for ( var i in this.gridArr ){
-           if ( this.gridArr[i].resident == 0 ) tmp.push (i); 
+            if ( this.gridArr[i].resident == 0 ) tmp.push (i); 
         }
 
         let rnd = Phaser.Math.Between (0, tmp.length - 1 );
 
+        return tmp[rnd] % 7;
+
+    }
+
+    makeAI () {
+
+        let shot = this.getRandomShot ();
+
         this.time.delayedCall ( 500, function () {
             
-           
-            this.makeTurn ( tmp[rnd] % 7, this.turn );
+            this.makeTurn (  shot, this.turn );
+
         }, [], this);
     
         
@@ -649,6 +654,8 @@ class SceneA extends Phaser.Scene {
 
             if ( depth != null ) {
 
+                this.shotHistory.push ( depth );
+
                 this.createCircle ( this.gridArr[depth].x , this.gridArr[depth].y, depth, plyr );
 
                 this.gridArr [depth].resident = ( plyr == 'self' ) ? 1 : 2;
@@ -683,24 +690,56 @@ class SceneA extends Phaser.Scene {
         
     }
 
+    checkWinning ( depth, clrId ) 
+    {
+
+        const r = Math.floor ( depth/7 ), c = depth % 7;
+
+        //horizontal..
+        for ( let i = 0; i < 4; i++ ) {
+
+            let sPoint = (r * 7) + i;
+
+            let counter = 0, zeroPos = -1;
+            
+            for ( var j = 0; j < 4; j++ ) {
+
+                const res = this.gridArr [ sPoint + j ].resident;
+
+                if ( res == clrId ) counter++;
+
+                if ( res == 0 ) zeroPos = sPoint + j
+            }
+
+            if ( counter >= 3 && zeroPos != -1 ) {
+                
+                //console.log ( zeroPos , zeroPos%7 );
+
+                if ( this.getDepth ( zeroPos%7 ) == zeroPos ) return zeroPos%7;
+            }
+           
+        }
+
+        return null;
+
+    }
+
     checkLines ( depth, clrId ) 
     {
 
         const r = Math.floor ( depth/7 ), c = depth % 7;
 
         //horizontal..
-        for ( var i = 0; i < 4; i++ ) {
+        for ( let i = 0; i < 4; i++ ) {
 
             let sPoint = (r * 7) + i;
 
             let arr = [];
 
-            for ( var j = 0; j < 4; j++ ) {
+            for ( let j = 0; j < 4; j++ ) {
 
                 if ( this.gridArr [ sPoint + j ].resident == clrId ) arr.push ( sPoint + j );
-
-            }
-
+            }    
             if ( arr.length > 3 ) return arr;
 
         }
@@ -710,17 +749,18 @@ class SceneA extends Phaser.Scene {
 
             let sPoint = (i * 7) + c;
 
-            let arrb = [];
+            let arr = [];
 
             for ( var j = 0; j < 4; j++ ) {
 
-                if ( this.gridArr [ sPoint + (j*7) ].resident == clrId ) arrb.push ( sPoint + (j*7) );
+                if ( this.gridArr [ sPoint + (j*7) ].resident == clrId ) arr.push ( sPoint + (j*7) );
 
             }
 
-            if ( arrb.length > 3 ) return arrb;
+            if ( arr.length > 3 ) return arr;
 
         }
+        
 
         //forward slash..
         let tr = r, tc = c;
@@ -791,7 +831,7 @@ class SceneA extends Phaser.Scene {
         return null;
 
     }
-    
+
     illuminate ( arr ) {
 
         const winChip = this.players [ this.turn ].chip;
@@ -820,7 +860,7 @@ class SceneA extends Phaser.Scene {
 
         this.time.delayedCall ( 500, () => {
             
-            this.playSound ('ending', 0.3);
+            this.playSound ('xyloriff', 0.3);
 
             this.showEndPrompt ();
 
@@ -849,11 +889,12 @@ class SceneA extends Phaser.Scene {
             this.removePrompt ();
            
             this.gameOver = false;
-        
+            
+            this.shotHistory = [];
+
             this.switchTurn ();
             
         }, [], this);
-
 
     }
 
