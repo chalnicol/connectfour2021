@@ -57,7 +57,7 @@ class SceneA extends Phaser.Scene {
 
             this.add.image ( xp, yp, 'cellbg');
 
-            this.add.text ( xp, yp, i, { color:'#333', fontFamily:'Oswald', fontSize: 20 }).setOrigin(0.5);
+            //this.add.text ( xp, yp, i, { color:'#333', fontFamily:'Oswald', fontSize: 20 }).setOrigin(0.5);
 
             this.gridArr.push ({
                 x : xp,
