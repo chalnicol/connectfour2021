@@ -285,7 +285,7 @@ class SceneA extends Phaser.Scene {
     createControls () 
     {
 
-        this.controlBtnsCont = this.add.container (0,0);
+        this.controlBtnsCont = this.add.container (0,0).setDepth (9999);
         
         const btnArr = [ 'exit', 'sound', 'music', 'emoji' ];
 
@@ -299,7 +299,13 @@ class SceneA extends Phaser.Scene {
 
                 switch (this.id) {
                     case 'exit':
-                        this.scene.showExitPrompt ();
+
+                        if ( this.gameOver ) {
+                            this.leaveGame ()
+                        }else {
+                            this.scene.showExitPrompt ();
+                        }
+                        
                         break;
                     case 'sound':
                         this.scene.soundOff = !this.scene.soundOff;
@@ -583,7 +589,6 @@ class SceneA extends Phaser.Scene {
       
     }
 
-
     getRandomShot () {
 
         let tmp = [];
@@ -654,7 +659,9 @@ class SceneA extends Phaser.Scene {
 
             if ( depth != null ) {
 
-                this.shotHistory.push ( depth );
+                //this.shotHistory.push ( depth );
+
+                this.shotCounter += 1;
 
                 this.createCircle ( this.gridArr[depth].x , this.gridArr[depth].y, depth, plyr );
 
@@ -666,11 +673,16 @@ class SceneA extends Phaser.Scene {
                 
                     this.illuminate ( lined );
 
-                    this.endGame ();
+                    this.endGame ( this.turn );
 
                 }else {
 
-                    this.switchTurn ();
+                    if ( this.shotCounter >= 42 ) {
+                        this.endGame ()
+                    }else {
+                        this.switchTurn ();
+                    }
+                    
 
                 }
 
@@ -849,20 +861,23 @@ class SceneA extends Phaser.Scene {
 
     }
 
-    endGame () {
-
-        
+    endGame ( winner = '' ) {
+  
         this.gameOver = true;
 
-        this.players [ this.turn ].wins += 1;
+        if ( winner != '' ) {
 
-        this.playerIndicatorsCont.getByName ( this.turn ).last.text = 'Wins : ' +  this.players [ this.turn ].wins;
+            this.players [ winner ].wins += 1;
 
+            this.playerIndicatorsCont.getByName ( winner ).last.text = 'Wins : ' +  this.players [ winner ].wins;
+    
+        }
+      
         this.time.delayedCall ( 500, () => {
             
             this.playSound ('xyloriff', 0.3);
 
-            this.showEndPrompt ();
+            this.showEndPrompt ( winner );
 
         }, [], this );
 
@@ -875,6 +890,8 @@ class SceneA extends Phaser.Scene {
         this.showPrompt ('Game is restarting..', 36, 0, true );
 
         this.anims.remove ('blink');
+
+        this.shotCounter = 0;
 
         for ( var i in this.gridArr ) {
             this.gridArr [i].resident = 0;
@@ -973,10 +990,19 @@ class SceneA extends Phaser.Scene {
 
     }
 
-    showEndPrompt () {
+    showEndPrompt ( winner ) {
 
-        const txt = this.turn == 'self' ? 'Congrats, You Win' : 'Sorry, You Lose';
+        let txt = '';
 
+        if ( winner == 'self') {
+            txt = 'Congrats, You Win'
+        }else if ( winner == 'oppo') {
+            txt = 'Sorry, You Lose';
+        }else {
+            txt = 'This game is a draw.';
+
+        }
+    
         const btnArr = [
             { 
                 'txt' : 'Play Again', 
