@@ -133,27 +133,29 @@ class Intro extends Phaser.Scene {
 
         for ( var i in menuArr ) {
 
-            const miniCont = this.add.container ( 960, 1132 ).setSize( 540, 102 ).setInteractive().setData ('id',  'but' + i );
+            // const miniCont = this.add.container ( 960, 1132 ).setSize( 540, 102 ).setInteractive().setData ('id',  'but' + i );
 
-            let rct = this.add.image ( 0, 0, 'bgmenu' );
+            const miniCont = this.add.container ( 960, 1132 ).setSize( 560, 110 ).setInteractive().setData ('id',  'but' + i );
 
-            let txt = this.add.text ( -180, 0, menuArr[i], { color:'#000', fontFamily:'Oswald', fontSize : 50 }).setOrigin (0, 0.5);
+            let rct = this.add.image ( 0, 0, 'menubtn' );
+
+            let txt = this.add.text ( 0, 0, menuArr[i], { color:'#333', fontFamily:'Oswald', fontSize : 48 }).setOrigin (0.5).setStroke ( '#fff', 3 );
 
             miniCont.add ( [rct, txt] );
 
             miniCont.on ('pointerover', function () {
            
-               this.first.setFrame (1);
-
+               //this.first.setFrame (1);
+                this.first.setTint ( 0xffffcc);
             });
             miniCont.on ('pointerout', function () {
                 //..
-                this.first.setFrame (0);
-               
+                // this.first.setFrame (0);
+                this.first.clearTint();
             });
             miniCont.on ('pointerup', function () {
                 //..
-                this.first.setFrame (0);
+                this.first.clearTint();
 
                 switch ( this.getData('id') ) {
                     case 'but0':
@@ -174,7 +176,7 @@ class Intro extends Phaser.Scene {
             });
             miniCont.on ('pointerdown', function () {
               
-                this.first.setFrame (2);
+                this.first.setTint ( 0xffff99);
                 
                 this.scene.playSound ('clicka');
 
@@ -183,9 +185,10 @@ class Intro extends Phaser.Scene {
             this.add.tween ({
                 targets : miniCont,
                 y : 600 + (i * 120),
-                duration : 300,
-                ease : 'Power2',
-                delay : i * 200
+                duration : 500,
+                easeParams: [1.1, 0.8],
+                ease : 'Elastic',
+                delay : (i * 200) + 300
             });
 
         }
